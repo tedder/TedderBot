@@ -5,9 +5,9 @@ import java.util.GregorianCalendar;
 import java.util.logging.Level;
 
 import net.inervo.WMFWiki11;
-import net.inervo.WikiHelpers;
 import net.inervo.TedderBot.Configuration;
 import net.inervo.Wiki.WikiFetcher;
+import net.inervo.Wiki.WikiHelpers;
 import net.inervo.Wiki.Cache.ArticleCache;
 import net.inervo.Wiki.Cache.CachedFetcher;
 import net.inervo.data.Keystore;

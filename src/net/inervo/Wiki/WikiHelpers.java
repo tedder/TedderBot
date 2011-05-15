@@ -1,4 +1,4 @@
-package net.inervo;
+package net.inervo.Wiki;
 
 import java.util.Calendar;
 

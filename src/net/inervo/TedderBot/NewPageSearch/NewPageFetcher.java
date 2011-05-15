@@ -29,8 +29,8 @@ import java.util.Map;
 
 import net.inervo.WMFWiki11;
 import net.inervo.WMFWiki11.Revisions;
-import net.inervo.WikiHelpers;
 import net.inervo.Wiki.WikiFetcher;
+import net.inervo.Wiki.WikiHelpers;
 
 import org.wikipedia.Wiki;
 import org.wikipedia.Wiki.Revision;
