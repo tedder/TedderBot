@@ -22,30 +22,31 @@ package net.inervo.TedderBot.NewPageSearch;
  */
 
 import java.io.File;
-import java.io.IOException;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import net.inervo.WMFWiki11;
 import net.inervo.TedderBot.Configuration;
-
-import org.wikipedia.WMFWiki;
+import net.inervo.Wiki.WikiFetcher;
+import net.inervo.Wiki.Cache.ArticleCache;
+import net.inervo.Wiki.Cache.CachedFetcher;
 
 public class ArticleScorer {
 	private PageRule ruleset;
 	private String article;
-	private WMFWiki wiki;
+	private WikiFetcher fetcher;
 
-	public ArticleScorer( WMFWiki wiki, PageRule ruleset, String article ) {
+	public ArticleScorer( WikiFetcher fetcher, PageRule ruleset, String article ) {
 		this.ruleset = ruleset;
 		this.article = article;
-		this.wiki = wiki;
+		this.fetcher = fetcher;
 	}
 
-	private String fetch() throws IOException {
-		return wiki.getPageText( article );
+	protected String fetch() throws Exception {
+		return fetcher.getPageText( article );
 	}
 
-	public int score() throws IOException {
+	public int score() throws Exception {
 		return score( fetch() );
 	}
 
@@ -54,29 +55,15 @@ public class ArticleScorer {
 		int score = 0;
 
 		for ( PageRule.MatchRule rule : ruleset.getPatterns() ) {
-			print( "pattern: " + rule.getPattern().toString() );
+			// print( "pattern: " + rule.getPattern().toString() );
 			score += scoreRule( articleText, rule );
 		}
 
 		return score;
-
-		// Scanner s = new Scanner( articleText ).useDelimiter( "\\n" );
-		//
-		// while ( s.hasNext() ) {
-		// String line = s.next();
-		// // print( "line: " + line );
-		//
-		// PageRuleParser rule = parseLine( line );
-		// if ( rule != null ) {
-		// pages.add( rule );
-		// }
-		// }
 	}
 
-	private int scoreRule( String articleText, PageRule.MatchRule rule ) {
-		// TODO TODO TODO: need to check for lede, double points.
-
-		boolean foundMatch = ruleMatches( articleText, rule.getPattern() );
+	protected int scoreRule( String articleText, PageRule.MatchRule rule ) {
+		boolean matchedArticle = ruleMatches( articleText, rule.getPattern() );
 		boolean foundIgnore = false;
 
 		if ( rule.getIgnore() != null && rule.getIgnore().size() > 0 ) {
@@ -89,14 +76,36 @@ public class ArticleScorer {
 		}
 
 		int score = 0;
-		if ( foundMatch && !foundIgnore ) {
+		if ( matchedArticle && !foundIgnore ) {
 			score = rule.getScore();
+
+			String ledeText = getLede( articleText );
+			if ( ruleMatches( ledeText, rule.getPattern() ) ) {
+				score *= 2;
+			}
 		}
 
 		return score;
 	}
 
-	private boolean ruleMatches( String articleText, Pattern pattern ) {
+	protected String getLede( String articleText ) {
+		// lede is at start
+		// there's an infobox first
+
+		// Pattern ledeText = Pattern.compile("[^\\=]");
+		Pattern ledePattern = Pattern.compile( "^(.*?)([\\n\\r]{2}|==).*", Pattern.MULTILINE | Pattern.DOTALL );
+		Matcher ledeMatcher = ledePattern.matcher( articleText );
+
+		String ledeText = "";
+		if ( ledeMatcher.matches() ) {
+			ledeText = ledeMatcher.group( 1 );
+
+		}
+
+		return ledeText;
+	}
+
+	protected boolean ruleMatches( String articleText, Pattern pattern ) {
 		boolean found = false;
 
 		Matcher matcher = pattern.matcher( articleText );
@@ -114,19 +123,27 @@ public class ArticleScorer {
 
 		Configuration config = new Configuration( new File( "wiki.properties" ) );
 
-		WMFWiki wiki = new WMFWiki( "en.wikipedia.org" );
+		WMFWiki11 wiki = new WMFWiki11( "en.wikipedia.org" );
+		wiki.setMaxLag( 25 );
 
 		wiki.login( config.getWikipediaUser(), config.getWikipediaPassword().toCharArray() );
 		PageRule parser = new PageRule( wiki, "User:AlexNewArtBot/Oregon", "Oregon", null );
 		print( "db lag (seconds): " + wiki.getCurrentDatabaseLag() );
 
-		ArticleScorer scorer = new ArticleScorer( wiki, parser, "Joseph Gramley" );
-		print( "score: " + scorer.score( "This is a test with Portland, Oregon mentioned." ) );
-		print( "score: " + scorer.score() );
+		ArticleCache ac = new ArticleCache( wiki );
+		// WikiFetcher fetcher = new CachedFetcher(ac);
+		WikiFetcher fetcher = new CachedFetcher( ac );
+
+		ArticleScorer scorer = new ArticleScorer( fetcher, parser, "Joseph Gramley" );
+		print( "lede: " + scorer.getLede( fetcher.getPageText( "Joseph Gramley" ) ) + "(end lede)" );
+		// print( "score: " + scorer.score( "This is a test with Portland, Oregon mentioned." ) );
+		// print( "score: " + scorer.score() );
+
+		ac.shutdown();
 
 	}
 
-	private static void print( String s ) {
+	protected static void print( String s ) {
 		System.out.println( s );
 	}
 

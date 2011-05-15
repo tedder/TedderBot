@@ -97,7 +97,9 @@ public class PageRule {
 				// }
 
 				// print( "match: " + rule.pattern + " / " + rule.score );
-				patterns.add( rule );
+				if ( rule.isValidPattern() ) {
+					patterns.add( rule );
+				}
 			} else if ( scoreMatcher.matches() ) {
 				String score = scoreMatcher.group( 1 );
 				threshold = Integer.parseInt( score );
@@ -111,11 +113,11 @@ public class PageRule {
 
 				safeSetPattern( rule, categoryMatcher.group( 2 ) );
 
-				if ( rule.getPattern() != null ) {
+				if ( rule.isValidPattern() ) {
 					patterns.add( rule );
 				}
-			} else {
-				print( "no match: |" + line + "|" );
+			} else if ( line.trim().length() > 0 ) {
+				// print( "no match: |" + line + "|" );
 				errors.add( "no match: " + line );
 			}
 		}
@@ -221,6 +223,14 @@ public class PageRule {
 		}
 
 		public MatchRule() {
+		}
+
+		public boolean isValidPattern() {
+			if ( pattern != null && pattern.toString() != null && pattern.toString().length() > 0 ) {
+				return true;
+			}
+
+			return false;
 		}
 
 		public void setPattern( Pattern pattern ) {

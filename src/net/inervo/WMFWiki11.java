@@ -106,7 +106,7 @@ public class WMFWiki11 extends org.wikipedia.WMFWiki {
 	 * fetch and return new pages from a given time until the correct number of results are returned.
 	 * 
 	 * @param amount
-	 *            , number of results requested
+	 *            number of results requested
 	 * @param namespace
 	 *            the namespace to search
 	 * @param rcoptions
@@ -122,9 +122,32 @@ public class WMFWiki11 extends org.wikipedia.WMFWiki {
 	 * @throws SAXException
 	 *             on parsing error
 	 */
-	public Revisions newPages( int amount, int namespace, int rcoptions, GregorianCalendar start ) throws IOException, ParserConfigurationException,
-			SAXException {
+	public Revisions newPages( int amount, int namespace, int rcoptions, Calendar start ) throws IOException, ParserConfigurationException, SAXException {
 		return newPages( amount, namespace, rcoptions, start, new GregorianCalendar() );
+	}
+
+	/**
+	 * fetch and return new pages from a given time until the correct number of results are returned.
+	 * 
+	 * @param amount
+	 *            number of results requested
+	 * @param namespace
+	 *            the namespace to search
+	 * @param rcoptions
+	 *            a bitmask of HIDE_ANON etc that dictate which pages we return (e.g. exclude patrolled pages =>
+	 *            rcoptions = HIDE_PATROLLED).
+	 * @param start
+	 *            time, string
+	 * @return Revisions object, which contains the list of Revision objects and the rcstart continuation
+	 * @throws IOException
+	 *             on network error
+	 * @throws ParserConfigurationException
+	 *             on parsing error
+	 * @throws SAXException
+	 *             on parsing error
+	 */
+	public Revisions newPages( int amount, int namespace, int rcoptions, String start ) throws IOException, ParserConfigurationException, SAXException {
+		return newPages( amount, namespace, rcoptions, timestampToCalendar( start ), new GregorianCalendar() );
 	}
 
 	/**
@@ -132,7 +155,7 @@ public class WMFWiki11 extends org.wikipedia.WMFWiki {
 	 * reached.
 	 * 
 	 * @param amount
-	 *            , number of results requested
+	 *            number of results requested
 	 * @param namespace
 	 *            the namespace to search
 	 * @param rcoptions
@@ -150,8 +173,8 @@ public class WMFWiki11 extends org.wikipedia.WMFWiki {
 	 * @throws SAXException
 	 *             on parsing error
 	 */
-	public Revisions newPages( int amount, int namespace, int rcoptions, GregorianCalendar start, GregorianCalendar end ) throws IOException,
-			ParserConfigurationException, SAXException {
+	public Revisions newPages( int amount, int namespace, int rcoptions, Calendar start, Calendar end ) throws IOException, ParserConfigurationException,
+			SAXException {
 		StringBuilder url = new StringBuilder( query );
 		url.append( "action=query&list=recentchanges&rcprop=title%7Cids%7Cuser%7Ctimestamp%7Cflags%7Ccomment&rclimit=max&rcdir=newer&rctype=new&rcend=" );
 		url.append( calendarToTimestamp( end ) );
@@ -212,6 +235,8 @@ public class WMFWiki11 extends org.wikipedia.WMFWiki {
 	protected String parseRecentChangesDocument( Element docEle, ArrayList<Revision> revisions, int amount ) {
 		NodeList rcitems = docEle.getElementsByTagName( "recentchanges" );
 
+		String nextStart = null;
+		boolean oneMore = false;
 		OUTER: for ( int j = 0; j < rcitems.getLength(); ++j ) {
 			Node rcitem = rcitems.item( j );
 			NodeList items = rcitem.getChildNodes();
@@ -226,15 +251,26 @@ public class WMFWiki11 extends org.wikipedia.WMFWiki {
 				Revision rev = parseRevision( (Element) nodeItem );
 				log( Level.INFO, "have rev: " + rev.getPage(), "parseRecentChangesDocument" );
 
-				revisions.add( rev );
-				if ( revisions.size() >= amount ) {
-					log( Level.INFO, "have enough revs", "parseRecentChangesDocument" );
+				if ( oneMore ) {
+					nextStart = calendarToTimestamp( rev.getTimestamp() );
 					break OUTER;
 				}
+
+				revisions.add( rev );
+				if ( revisions.size() >= amount ) {
+					// we have enough, but we need to go a step further to get the next start time.
+					log( Level.INFO, "have enough revs", "parseRecentChangesDocument" );
+					oneMore = true;
+				}
+
 			}
 		}
 
-		return parseQueryContinue( docEle.getElementsByTagName( "query-continue" ) );
+		// if we didn't get a start from having enough revisions, we can get it from query-continue.
+		if ( nextStart == null ) {
+			nextStart = parseQueryContinue( docEle.getElementsByTagName( "query-continue" ) );
+		}
+		return nextStart;
 	}
 
 	/**

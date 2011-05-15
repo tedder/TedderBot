@@ -1,0 +1,12 @@
+<ehcache xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:noNamespaceSchemaLocation="../config/ehcache.xsd">
+        <diskStore path="java.io.tmpdir" />
+        <defaultCache maxElementsInMemory="10000"
+                timeToIdleSeconds="120" timeToLiveSeconds="120" overflowToDisk="true"
+                maxElementsOnDisk="10000000" diskPersistent="true"
+                diskExpiryThreadIntervalSeconds="120" memoryStoreEvictionPolicy="LRU" />
+        <cache name="wiki-articles" maxElementsInMemory="50"
+                overflowToDisk="true" timeToIdleSeconds="259200" timeToLiveSeconds="259200"
+                diskPersistent="true" diskExpiryThreadIntervalSeconds="1"
+                memoryStoreEvictionPolicy="LFU" />
+</ehcache>

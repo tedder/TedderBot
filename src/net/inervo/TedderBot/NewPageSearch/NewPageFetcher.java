@@ -21,87 +21,200 @@ package net.inervo.TedderBot.NewPageSearch;
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-import java.io.File;
-import java.util.Calendar;
-import java.util.GregorianCalendar;
+import java.io.IOException;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
 
 import net.inervo.WMFWiki11;
 import net.inervo.WMFWiki11.Revisions;
-import net.inervo.TedderBot.Configuration;
+import net.inervo.WikiHelpers;
+import net.inervo.Wiki.WikiFetcher;
 
 import org.wikipedia.Wiki;
 import org.wikipedia.Wiki.Revision;
 
 public class NewPageFetcher {
+
 	protected WMFWiki11 wiki = null;
+	protected Map<String, String> results = new HashMap<String, String>();
+	protected WikiFetcher fetcher = null;
+	protected boolean debug;
 
-	public NewPageFetcher( WMFWiki11 wiki ) {
+	public NewPageFetcher( WMFWiki11 wiki, WikiFetcher fetcher, boolean debug ) {
 		this.wiki = wiki;
+		this.fetcher = fetcher;
+		this.debug = debug;
 	}
 
-	public Revisions fetch( int fetchPages ) throws Exception {
-		Revisions revs = wiki.newPages( fetchPages, Wiki.MAIN_NAMESPACE, 0, new GregorianCalendar( 2011, 04, 01, 0, 01, 03 ) );
-		return revs;
+	public String run( String startTimestamp ) throws Exception {
+		String debugOverride = debug ? "Oregon" : null;
+		String lastTimestamp = null;
+
+		PageRules rules = new PageRules( wiki, "User:AlexNewArtBot/Master", debugOverride );
+
+		Revisions revs = null;
+//		String start = calendarToTimestamp( new GregorianCalendar( 2011, 04, 01, 0, 01, 03 ) );
+		do {
+			revs = fetch( 5000, startTimestamp );
+			lastTimestamp = processRevisions( rules, revs );
+			
+			startTimestamp = revs.getRcStart();
+			print( "rcstart: " + startTimestamp );
+		} while ( startTimestamp != null && startTimestamp.length() > 0 );
+		
+		outputResults( rules );
+		
+		return lastTimestamp;
 	}
 
-	public static void main( String[] args ) throws Exception {
+	HashMap<String, ArrayList<String>> alist = new HashMap<String, ArrayList<String>>();
 
-		print( "hello world!" );
+	protected void addEntryToOutputList( Revision rev, PageRule rule, int score ) {
+		String text = getResultOutputLine( rev, score );
+		String sn = rule.getSearchName();
 
-		Configuration config = new Configuration( new File( "wiki.properties" ) );
+		if ( !alist.containsKey( sn ) ) {
+			ArrayList<String> textlist = new ArrayList<String>();
+			textlist.add( text );
+			alist.put( sn, textlist );
+		} else {
+			alist.get( sn ).add( text );
+		}
+	}
 
-		WMFWiki11 wiki = new WMFWiki11( "en.wikipedia.org" );
-		wiki.setMaxLag( 15 );
-		print( "db lag (seconds): " + wiki.getCurrentDatabaseLag() );
+	protected String getResultOutputLine( Revision rev, int score ) {
+		SimpleDateFormat sdf = new SimpleDateFormat( "HH:mm, dd MMMM yyyy" );
+		return "*{{la|" + rev.getPage() + "}} by {{User|" + rev.getUser() + "}} started at <span class=\"mw-newpages-time\">"
+				+ sdf.format( rev.getTimestamp().getTime() ) + "</span>, score: " + score + "</span>";
 
-		wiki.login( config.getWikipediaUser(), config.getWikipediaPassword().toCharArray() );
-		PageRules rules = new PageRules( wiki );
+	}
 
-		NewPageFetcher npp = new NewPageFetcher( wiki );
-		Revisions revs = npp.fetch( 5 );
-		// print( npp.revisionsToString( revs ) );
+	protected void outputResults( PageRules rules ) throws Exception {
+		for ( PageRule rule : rules.getRules() ) {
+			outputResultsForRule( rule );
+		}
+	}
 
-		// PageRule rule = new PageRule( wiki, "User:AlexNewArtBot/Oregon", "Oregon", null );
+	protected void outputResultsForRule( PageRule rule ) throws Exception {
+		print( "pn: " + rule.getPageName() );
+		print( "sn: " + rule.getSearchName() );
+		print( "t:  " + rule.getTarget() );
 
+		int errors = 0;
+		if ( rule.getErrors() != null ) {
+			errors = rule.getErrors().size();
+		}
+
+		// String pageName = rule.getPageName();
+		String searchName = rule.getSearchName();
+		if ( debug && !searchName.equalsIgnoreCase( "oregon" ) ) {
+			return;
+		}
+
+		StringBuilder searchResultText = new StringBuilder();
+		StringBuilder subject = new StringBuilder( "most recent results" );
+
+		if ( errors > 0 ) {
+			subject.append( ", " + errors + " [[User:TedderBot/SearchBotErrors|errors]]" );
+			searchResultText.append( "'''There were [[User:TedderBot/SearchBotErrors#" + rule.getSearchName() + "|" + errors
+					+ " encountered]] while parsing the [[" + rule.getPageName() + "|" + "rules for this search]].'''\n\n" );
+		}
+
+		if ( alist.containsKey( searchName ) ) {
+			ArrayList<String> results = alist.get( searchName );
+			subject.append( ": " + results.size() + " results" );
+			for ( String line : results ) {
+				searchResultText.append( line );
+				searchResultText.append( "\n" );
+			}
+		} else {
+			print( "search " + searchName + " had no results" );
+			return;
+		}
+
+		wiki.edit( "User:TedderBot/TestSearchResults", searchResultText.toString(), subject.toString(), false );
+	}
+
+	protected void writeErrors( PageRules rules ) {
+		StringBuilder errorBuilder = new StringBuilder();
+		errorBuilder.append( "{| class=\"wikitable\"\n! search\n! errors\n" );
+
+		for ( PageRule rule : rules.getRules() ) {
+			if ( rule.getErrors().size() == 0 ) {
+				continue;
+			}
+			String link = "[[" + rule.getPageName() + "|" + rule.getSearchName() + "]]";
+			errorBuilder.append( "|-\n" );
+			errorBuilder.append( "| " );
+			errorBuilder.append( link );
+			errorBuilder.append( "\n| <nowiki>" );
+			errorBuilder.append( join( "</nowiki><br />\n<nowiki>", rule.getErrors().toArray( new String[rule.getErrors().size()] ) ) );
+			errorBuilder.append( "</nowiki>\n" );
+		}
+		errorBuilder.append( "\n|}\n" );
+
+		// print( "text: " + errorBuilder.toString() );
+
+		try {
+			wiki.edit( "User:TedderBot/SearchBotErrors", errorBuilder.toString(), "most recent errors", false );
+		} catch ( Exception e ) {
+			// do nothing, we don't really care if the log fails.
+		}
+	}
+
+	protected String processRevisions( PageRules rules, Revisions revs ) throws Exception {
+		String lastRevisionTime = null;
+		
 		for ( Revision rev : revs.getRevisionList() ) {
+
 			String article = rev.getPage();
-			String pageText = wiki.getPageText( article );
+			String pageText = null;
+			try {
+				pageText = fetcher.getPageText( article );
+			} catch ( IOException ex ) {
+				// couldn't get the page, move on.
+				continue;
+			}
 
 			for ( PageRule rule : rules.getRules() ) {
 
-				int score = new ArticleScorer( wiki, rule, article ).score( pageText );
-				if ( score >= rule.getThreshold() ) {
-					// print( "article: " + rev.getPage() );
-					print( "score is above threshold! Article: " + article );
-				}
-				// TODO: catch these errors so we can go on, report them at the end. Maybe skip this rule too, leave a
-				// note on the rule/search result talk pages?
-				//
-				// } catch (PatternSyntaxException ex) {
-			}
-		}
+				int score = new ArticleScorer( fetcher, rule, article ).score( pageText );
+				// print( "Article: " + article + ", score: " + score + ", search: " + rule.getSearchName() );
 
-		// parser.parseRule( );
-		// print( wiki.getPageText( "User:AlexNewArtBot/LosAngeles" ) );
+				if ( score >= rule.getThreshold() ) {
+					print( "score is above threshold! Article: " + article + ", score: " + score + ", search: " + rule.getSearchName() );
+					addEntryToOutputList( rev, rule, score );
+				}
+
+			}
+			
+			lastRevisionTime = WikiHelpers.calendarToTimestamp(rev.getTimestamp());
+		}
+		
+		return lastRevisionTime;
 	}
 
-	private static void print( String s ) {
+	public Revisions fetch( int fetchPageCount, String rcstart ) throws Exception {
+		return wiki.newPages( fetchPageCount, Wiki.MAIN_NAMESPACE, 0, rcstart );
+	}
+
+	/*** helper functions ***/
+
+	protected static void print( String s ) {
 		System.out.println( s );
 	}
 
-	public String revisionsToString( Revisions revs ) {
+	protected static String join( String delim, String... arr ) {
 		StringBuilder ret = new StringBuilder();
-		for ( Revision rev : revs.getRevisionList() ) {
-			ret.append( "revid: " + rev.getRevid() + ", page: " + rev.getPage() + " " + calendarToTimestamp( rev.getTimestamp() ) + "\n" );
+		for ( String row : arr ) {
+			if ( ret.length() != 0 ) {
+				ret.append( delim );
+			}
+			ret.append( row );
 		}
-		ret.append( "next start: " + revs.getRcStart() + "\n" );
 
 		return ret.toString();
-	}
-
-	// pay no mind, just a helper function.
-	private static String calendarToTimestamp( Calendar c ) {
-		return String.format( "%04d%02d%02d%02d%02d%02d", c.get( Calendar.YEAR ), c.get( Calendar.MONTH ) + 1, c.get( Calendar.DAY_OF_MONTH ),
-				c.get( Calendar.HOUR_OF_DAY ), c.get( Calendar.MINUTE ), c.get( Calendar.SECOND ) );
 	}
 }

@@ -3,5 +3,7 @@
 	<classpathentry kind="src" path="src"/>
 	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
 	<classpathentry combineaccessrules="false" kind="src" path="/jwiki"/>
+	<classpathentry combineaccessrules="false" kind="src" path="/project-libs"/>
+	<classpathentry combineaccessrules="false" kind="src" path="/SmallProjects"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>
