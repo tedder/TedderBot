@@ -32,9 +32,12 @@ import net.inervo.Wiki.Cache.CachedFetcher;
 import net.inervo.data.Keystore;
 
 public class Application {
-	private static final boolean DEBUG_MODE = true;
+	private static final boolean DEBUG_MODE = false;
 
 	public static void main( String[] args ) throws Exception {
+		// shutdown hook. Enable early so we don't blow up the cache.
+		System.setProperty( "net.sf.ehcache.enableShutdownHook", "true" );
+
 		print( "hello world!" );
 		ArticleCache ac = null;
 
