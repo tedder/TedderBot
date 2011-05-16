@@ -23,6 +23,7 @@ package net.inervo.TedderBot.NewPageSearch;
 
 import java.io.File;
 import java.io.IOException;
+import java.net.SocketTimeoutException;
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
@@ -62,7 +63,14 @@ public class PageRule {
 		Pattern defaultScorePattern = Pattern.compile( "^\\s*@@(\\d+)@@\\s*$" );
 		Pattern categoryPattern = Pattern.compile( "^\\s*(\\d*)\\s*\\$\\$(.*)\\$\\$\\s*$" );
 
-		String input = wiki.getPageText( pageName );
+		String input = null;
+		try {
+			input = wiki.getPageText( pageName );
+		} catch ( SocketTimeoutException ex ) {
+			// retry. Once.
+			print( "couldn't fetch page on first try, so we'll have another go at it. Page: " + pageName );
+			input = wiki.getPageText( pageName );
+		}
 		// print( "text: |" + input + "|" );
 		Scanner s = new Scanner( input ).useDelimiter( "\\n" );
 
