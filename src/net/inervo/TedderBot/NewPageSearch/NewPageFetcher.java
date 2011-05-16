@@ -262,7 +262,8 @@ public class NewPageFetcher {
 				// print( "Article: " + article + ", score: " + score + ", search: " + rule.getSearchName() );
 
 				if ( score >= rule.getThreshold() ) {
-					print( "score is above threshold! Article: " + article + ", score: " + score + ", search: " + rule.getSearchName() );
+					print( "score is above threshold! Article: " + article + ", score: " + score + ", search: " + rule.getSearchName() + ", time: "
+							+ WikiHelpers.calendarToTimestamp( rev.getTimestamp() ) );
 					matched = true;
 					addEntryToOutputLists( rev, rule.getSearchName(), score );
 				}
