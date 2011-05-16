@@ -1,5 +1,6 @@
 package net.inervo.Wiki.Cache;
 
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.net.URL;
 
@@ -43,7 +44,12 @@ public class ArticleCache {
 		}
 
 		System.out.println( "uncached article: " + articleName );
-		String articleText = wiki.getPageText( articleName );
+		String articleText = null;
+		try {
+			articleText = wiki.getPageText( articleName );
+		} catch (FileNotFoundException ex) {
+			articleText = "[DELETED]";
+		}
 
 		cache.put( new Element( articleName, articleText ) );
 

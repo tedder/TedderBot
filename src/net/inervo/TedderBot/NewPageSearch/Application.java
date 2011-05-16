@@ -32,6 +32,7 @@ import net.inervo.Wiki.Cache.CachedFetcher;
 import net.inervo.data.Keystore;
 
 public class Application {
+	private static final boolean DEBUG_MODE = true;
 
 	public static void main( String[] args ) throws Exception {
 		print( "hello world!" );
@@ -52,7 +53,7 @@ public class Application {
 			ac = new ArticleCache( wiki );
 			WikiFetcher fetcher = new CachedFetcher( ac );
 
-			NewPageFetcher npp = new NewPageFetcher( wiki, fetcher, keystore, true );
+			NewPageFetcher npp = new NewPageFetcher( wiki, fetcher, keystore, DEBUG_MODE );
 			npp.run();
 
 		} finally {

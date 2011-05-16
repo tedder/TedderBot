@@ -34,27 +34,25 @@ public class Sparkline {
 		double min = Collections.min( nums );
 		double max = Collections.max( nums );
 		double range = max - min;
-		System.out.println( "min, max, range: " + min + ", " + max + ", " + range );
 
 		String text = "";
-		for ( double i : nums ) {
-			int scaled = (int) Math.round( ( i / range ) * SPARK_SCALE_UNITS );
-			System.out.println( "original: " + i + ", scaled: " + scaled );
-			// text += scaled + " -- ";
+		for ( double num : nums ) {
+			int scaled = scale( num, min, range, SPARK_SCALE_UNITS );
 			text += new Character( (char) SPARK_UNICODE_VALUES[scaled] );
-			// text += new Character((char)i).toString() +"\n\n";
 		}
 		return text;
 	}
 
+	private int scale( double num, double min, double range, double scaleFactor ) {
+		return (int) Math.round( ( ( num - min ) / range ) * SPARK_SCALE_UNITS );
+	}
+
 	public static void main( String[] args ) throws Exception {
 		List<Double> numbers = new ArrayList<Double>();
-		List<Integer> intnumbers = new ArrayList<Integer>();
 
-		int nums[] = { 2, 12, 14, 6, 19, 210, 1 };
+		int nums[] = { 4, 1, 4, 1, 2, 4, 3 };
 		for ( int n : nums ) {
 			numbers.add( (double) n );
-			intnumbers.add( n );
 		}
 
 		System.out.println( new Sparkline().getSparkline( numbers ) );

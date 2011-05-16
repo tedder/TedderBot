@@ -45,7 +45,9 @@ import org.wikipedia.Wiki.Revision;
 public class NewPageFetcher {
 	// consider this an "oversearch" period.
 	public static final int PREPEND_SEARCH_DAYS = -7;
-	
+
+	protected static final String ORPHAN_BUCKET_NAME = "Orphan";
+
 	protected WMFWiki11 wiki = null;
 	protected Map<String, String> results = new HashMap<String, String>();
 	protected WikiFetcher fetcher = null;
@@ -60,7 +62,7 @@ public class NewPageFetcher {
 		this.keystore = keystore;
 		this.debug = debug;
 	}
-	
+
 	public String getStartTime() throws FileNotFoundException, IllegalArgumentException, IOException {
 		String startTime = keystore.getKey( "lastRunTime" );
 
@@ -80,12 +82,12 @@ public class NewPageFetcher {
 
 		return startTime;
 	}
-	
+
 	public void run() throws Exception {
-		String endTime = runFetcher(getStartTime());
-		storeStartTime(endTime);
+		String endTime = runFetcher( getStartTime() );
+		storeStartTime( endTime );
 	}
-	
+
 	public void storeStartTime( String lastStamp ) {
 		keystore.put( "lastRunTime", lastStamp, true );
 	}
@@ -111,30 +113,31 @@ public class NewPageFetcher {
 		return lastTimestamp;
 	}
 
-	protected void addEntryToOutputList( Revision rev, PageRule rule, int score ) {
+	protected void addEntryToOutputLists( Revision rev, String searchName, int score ) {
 		String text = getResultOutputLine( rev, score );
-		String sn = rule.getSearchName();
 
-		if ( !outputList.containsKey( sn ) ) {
+		// main outputlist
+		if ( !outputList.containsKey( searchName ) ) {
 			ArrayList<String> textlist = new ArrayList<String>();
 			textlist.add( text );
-			outputList.put( sn, textlist );
+			outputList.put( searchName, textlist );
 		} else {
-			outputList.get( sn ).add( text );
+			outputList.get( searchName ).add( text );
 		}
 
+		// by search by day list
 		Integer datestamp = Integer.valueOf( WikiHelpers.calendarToDatestamp( rev.getTimestamp() ) );
-		if ( !outputBySearchByDay.containsKey( sn ) ) {
+		if ( !outputBySearchByDay.containsKey( searchName ) ) {
 			SortedMap<Integer, Integer> daymap = new TreeMap<Integer, Integer>();
 			daymap.put( datestamp, 1 );
-			outputBySearchByDay.put( sn, daymap );
+			outputBySearchByDay.put( searchName, daymap );
 		} else {
-			Integer count = outputBySearchByDay.get( sn ).get( datestamp );
+			Integer count = outputBySearchByDay.get( searchName ).get( datestamp );
 			if ( count == null ) {
 				count = 0;
 			}
 			++count;
-			outputBySearchByDay.get( sn ).put( datestamp, count );
+			outputBySearchByDay.get( searchName ).put( datestamp, count );
 		}
 	}
 
@@ -146,24 +149,17 @@ public class NewPageFetcher {
 	}
 
 	protected void outputResults( PageRules rules ) throws Exception {
-		writeErrors(rules);
+		writeErrors( rules );
 		for ( PageRule rule : rules.getRules() ) {
-			outputResultsForRule( rule );
+			int searchErrorCount = 0;
+			if ( rule.getErrors() != null ) {
+				searchErrorCount = rule.getErrors().size();
+			}
+			outputResultsForRule( rule.getSearchName(), rule.getPageName(), rule.getTarget(), searchErrorCount );
 		}
 	}
 
-	protected void outputResultsForRule( PageRule rule ) throws Exception {
-		// print( "pn: " + rule.getPageName() );
-		// print( "sn: " + rule.getSearchName() );
-		// print( "t:  " + rule.getTarget() );
-
-		int errors = 0;
-		if ( rule.getErrors() != null ) {
-			errors = rule.getErrors().size();
-		}
-
-		// String pageName = rule.getPageName();
-		String searchName = rule.getSearchName();
+	protected void outputResultsForRule( String searchName, String pageName, String target, int searchErrorCount ) throws Exception {
 		if ( debug && !searchName.equalsIgnoreCase( "oregon" ) ) {
 			return;
 		}
@@ -171,14 +167,18 @@ public class NewPageFetcher {
 		StringBuilder searchResultText = new StringBuilder();
 		StringBuilder subject = new StringBuilder( "most recent results" );
 
-		if ( errors > 0 ) {
-			subject.append( ", " + errors + " [[User:TedderBot/SearchBotErrors|errors]]" );
-			searchResultText.append( "'''There were [[User:TedderBot/SearchBotErrors#" + rule.getSearchName() + "|" + errors
-					+ " encountered]] while parsing the [[" + rule.getPageName() + "|" + "rules for this search]].'''\n\n" );
+		if ( searchErrorCount > 0 ) {
+			subject.append( ", " + searchErrorCount + " [[User:TedderBot/SearchBotErrors|errors]]" );
+			searchResultText.append( "'''There were [[User:TedderBot/SearchBotErrors#" + searchName + "|" + searchErrorCount
+					+ " encountered]] while parsing the [[" + pageName + "|" + "rules for this search]].''' " );
 		}
 
-		searchResultText.append( "This list was generated from [[" + rule.getPageName()
-				+ "]]. Questions and feedback [[User talk:Tedder|are always welcome]]!\n\n" );
+		if ( outputList.containsKey( ORPHAN_BUCKET_NAME ) && outputList.get( ORPHAN_BUCKET_NAME ) != null ) {
+			searchResultText.append( "There were also " + outputList.get( ORPHAN_BUCKET_NAME ).size()
+					+ " new articles that weren't matched by any lists during this time period. " );
+		}
+
+		searchResultText.append( "This list was generated from [[" + pageName + "]]. Questions and feedback [[User talk:Tedder|are always welcome]]!\n\n" );
 
 		if ( outputList.containsKey( searchName ) ) {
 			ArrayList<String> results = outputList.get( searchName );
@@ -190,32 +190,32 @@ public class NewPageFetcher {
 		} else {
 			searchResultText.append( "There are no current results for this search, sorry." );
 		}
-		
-		subject.append(", daily counts: "  + getSparkline( searchName ));
+
+		subject.append( ", daily counts: " + getSparkline( searchName ) );
 
 		// int nums[] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
 		// for (int i:nums) {
 		// String s = String.format ("\\u%04x", 9600+c)
 		// }
 
-		wiki.edit( rule.getTarget(), searchResultText.toString(), subject.toString(), false );
+		wiki.edit( target, searchResultText.toString(), subject.toString(), false );
 	}
 
-	protected String getSparkline(String searchName) {
+	protected String getSparkline( String searchName ) {
 		SortedMap<Integer, Integer> resultCounts = outputBySearchByDay.get( searchName );
 		List<Double> numbers = new ArrayList<Double>();
 
-		for(Integer value : resultCounts.values()) {
-			numbers.add((double)value);
+		for ( Integer value : resultCounts.values() ) {
+			numbers.add( (double) value );
 		}
-		
+
 		return new Sparkline().getSparkline( numbers );
 	}
 
 	protected void writeErrors( PageRules rules ) {
 		int rulecount = rules.getRules().size();
-		
-		StringBuilder errorBuilder = new StringBuilder( rulecount + " searches processed.\n");
+
+		StringBuilder errorBuilder = new StringBuilder( rulecount + " searches processed.\n" );
 		errorBuilder.append( "{| class=\"wikitable\"\n! search\n! errors\n" );
 
 		for ( PageRule rule : rules.getRules() ) {
@@ -255,6 +255,7 @@ public class NewPageFetcher {
 				continue;
 			}
 
+			boolean matched = false;
 			for ( PageRule rule : rules.getRules() ) {
 
 				int score = new ArticleScorer( fetcher, rule, article ).score( pageText );
@@ -262,9 +263,14 @@ public class NewPageFetcher {
 
 				if ( score >= rule.getThreshold() ) {
 					print( "score is above threshold! Article: " + article + ", score: " + score + ", search: " + rule.getSearchName() );
-					addEntryToOutputList( rev, rule, score );
+					matched = true;
+					addEntryToOutputLists( rev, rule.getSearchName(), score );
 				}
 
+			}
+
+			if ( !matched ) {
+				addEntryToOutputLists( rev, ORPHAN_BUCKET_NAME, 1 );
 			}
 
 			lastRevisionTime = WikiHelpers.calendarToTimestamp( rev.getTimestamp() );
