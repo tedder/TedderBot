@@ -21,49 +21,44 @@ package net.inervo.TedderBot.NewPageSearch;
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-import java.io.File;
-import java.util.logging.Level;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 
-import net.inervo.WMFWiki11;
-import net.inervo.TedderBot.Configuration;
-import net.inervo.Wiki.WikiFetcher;
-import net.inervo.Wiki.Cache.ArticleCache;
-import net.inervo.Wiki.Cache.CachedFetcher;
-import net.inervo.data.Keystore;
+public class Sparkline {
+	protected static final int SPARK_UNICODE_VALUES[] = { 9601, 9602, 9603, 9605, 9606, 9607, 9609 };
+	protected static final int SPARK_SCALE_UNITS = SPARK_UNICODE_VALUES.length - 1;
 
-public class Application {
+	public String getSparkline( List<Double> nums ) {
+
+		double min = Collections.min( nums );
+		double max = Collections.max( nums );
+		double range = max - min;
+		System.out.println( "min, max, range: " + min + ", " + max + ", " + range );
+
+		String text = "";
+		for ( double i : nums ) {
+			int scaled = (int) Math.round( ( i / range ) * SPARK_SCALE_UNITS );
+			System.out.println( "original: " + i + ", scaled: " + scaled );
+			// text += scaled + " -- ";
+			text += new Character( (char) SPARK_UNICODE_VALUES[scaled] );
+			// text += new Character((char)i).toString() +"\n\n";
+		}
+		return text;
+	}
 
 	public static void main( String[] args ) throws Exception {
-		print( "hello world!" );
-		ArticleCache ac = null;
+		List<Double> numbers = new ArrayList<Double>();
+		List<Integer> intnumbers = new ArrayList<Integer>();
 
-		try {
-			Keystore keystore = new Keystore( new File( "AwsCredentials.properties" ), "TedderBot.NewPageSearch" );
-			Configuration config = new Configuration( new File( "wiki.properties" ) );
-
-			WMFWiki11 wiki = new WMFWiki11( "en.wikipedia.org" );
-			wiki.setMaxLag( 15 );
-			wiki.setLogLevel( Level.WARNING );
-
-			// wiki.setThrottle( 5000 );
-			wiki.login( config.getWikipediaUser(), config.getWikipediaPassword().toCharArray() );
-			print( "db lag (seconds): " + wiki.getCurrentDatabaseLag() );
-
-			ac = new ArticleCache( wiki );
-			WikiFetcher fetcher = new CachedFetcher( ac );
-
-			NewPageFetcher npp = new NewPageFetcher( wiki, fetcher, keystore, true );
-			npp.run();
-
-		} finally {
-			if ( ac != null ) {
-				ac.shutdown();
-			}
+		int nums[] = { 2, 12, 14, 6, 19, 210, 1 };
+		for ( int n : nums ) {
+			numbers.add( (double) n );
+			intnumbers.add( n );
 		}
-	}
 
-	private static void print( String s ) {
-		System.out.println( s );
-	}
+		System.out.println( new Sparkline().getSparkline( numbers ) );
+		// System.out.println( new Sparkline().getSparkline( intnumbers ) );
 
+	}
 }
