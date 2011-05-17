@@ -184,7 +184,7 @@ public class NewPageFetcher {
 					+ " new articles that weren't matched by any lists during this time period. " );
 		}
 
-		searchResultText.append( "This list was generated from [[" + pageName + "]]. Questions and feedback [[User talk:Tedder|are always welcome]]!\n\n" );
+		searchResultText.append( "This list was generated from [[" + pageName + "]]. Questions and feedback [[User talk:Tedder|are always welcome]]! The search is being run manually, but eventually will run ~daily with the most ~7 days of results.\n\n" );
 
 		if ( outputList.containsKey( searchName ) ) {
 			ArrayList<String> results = outputList.get( searchName );
