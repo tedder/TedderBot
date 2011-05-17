@@ -41,7 +41,6 @@ public class PageRule {
 	private static final int DEFAULT_THRESHOLD = 10;
 
 	private WMFWiki wiki = null;
-	private String target = null;
 	private String searchName = null;
 	private String pageName = null;
 	private int threshold = DEFAULT_THRESHOLD;
@@ -49,9 +48,8 @@ public class PageRule {
 	private List<MatchRule> patterns = new ArrayList<MatchRule>();
 	private List<String> errors = new LinkedList<String>();
 
-	public PageRule( WMFWiki wiki, String pageName, String searchName, String target ) throws IOException {
+	public PageRule( WMFWiki wiki, String pageName, String searchName ) throws IOException {
 		this.wiki = wiki;
-		this.target = target;
 		this.searchName = searchName;
 		this.pageName = pageName;
 		parseRule( pageName );
@@ -200,7 +198,7 @@ public class PageRule {
 		WMFWiki wiki = new WMFWiki( "en.wikipedia.org" );
 
 		wiki.login( config.getWikipediaUser(), config.getWikipediaPassword().toCharArray() );
-		PageRule parser = new PageRule( wiki, "User:AlexNewArtBot/" + search, search, null );
+		PageRule parser = new PageRule( wiki, "User:AlexNewArtBot/" + search, search );
 		print( "db lag (seconds): " + wiki.getCurrentDatabaseLag() );
 		// parser.parseRule( );
 		// print( wiki.getPageText( "User:AlexNewArtBot/LosAngeles" ) );
@@ -282,10 +280,7 @@ public class PageRule {
 	}
 
 	public String getTarget() {
-		if ( target == null ) {
-			return "User:AlexNewArtBot/" + searchName + "SearchResult";
-		}
-		return target;
+		return "User:AlexNewArtBot/" + searchName + "SearchResult";
 	}
 
 	public int getThreshold() {

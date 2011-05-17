@@ -26,6 +26,8 @@ import java.util.logging.Level;
 
 import net.inervo.WMFWiki11;
 import net.inervo.TedderBot.Configuration;
+import net.inervo.Wiki.PageEditor;
+import net.inervo.Wiki.RetryEditor;
 import net.inervo.Wiki.WikiFetcher;
 import net.inervo.Wiki.Cache.ArticleCache;
 import net.inervo.Wiki.Cache.CachedFetcher;
@@ -55,8 +57,9 @@ public class Application {
 
 			ac = new ArticleCache( wiki );
 			WikiFetcher fetcher = new CachedFetcher( ac );
+			PageEditor editor = new RetryEditor( wiki );
 
-			NewPageFetcher npp = new NewPageFetcher( wiki, fetcher, keystore, DEBUG_MODE );
+			NewPageFetcher npp = new NewPageFetcher( wiki, fetcher, editor, keystore, DEBUG_MODE );
 			npp.run();
 
 		} finally {

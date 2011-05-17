@@ -35,6 +35,7 @@ import java.util.TreeMap;
 
 import net.inervo.WMFWiki11;
 import net.inervo.WMFWiki11.Revisions;
+import net.inervo.Wiki.PageEditor;
 import net.inervo.Wiki.WikiFetcher;
 import net.inervo.Wiki.WikiHelpers;
 import net.inervo.data.Keystore;
@@ -55,10 +56,13 @@ public class NewPageFetcher {
 	protected HashMap<String, ArrayList<String>> outputList = new HashMap<String, ArrayList<String>>();
 	protected HashMap<String, SortedMap<Integer, Integer>> outputBySearchByDay = new HashMap<String, SortedMap<Integer, Integer>>();
 	protected Keystore keystore = null;
+	protected PageEditor editor;
+	protected List<String> errors = new ArrayList<String>();
 
-	public NewPageFetcher( WMFWiki11 wiki, WikiFetcher fetcher, Keystore keystore, boolean debug ) {
+	public NewPageFetcher( WMFWiki11 wiki, WikiFetcher fetcher, PageEditor editor, Keystore keystore, boolean debug ) {
 		this.wiki = wiki;
 		this.fetcher = fetcher;
+		this.editor = editor;
 		this.keystore = keystore;
 		this.debug = debug;
 	}
@@ -149,8 +153,10 @@ public class NewPageFetcher {
 	}
 
 	protected void outputResults( PageRules rules ) throws Exception {
-		writeErrors( rules );
+		writeErrors( rules, errors );
 		for ( PageRule rule : rules.getRules() ) {
+			print( "processing rule: " + rule.getSearchName() );
+
 			int searchErrorCount = 0;
 			if ( rule.getErrors() != null ) {
 				searchErrorCount = rule.getErrors().size();
@@ -198,13 +204,21 @@ public class NewPageFetcher {
 		// String s = String.format ("\\u%04x", 9600+c)
 		// }
 
-		wiki.edit( target, searchResultText.toString(), subject.toString(), false );
+		try {
+			editor.edit( target, searchResultText.toString(), subject.toString(), false );
+		} catch ( IOException ex ) {
+			print( "failed updating " + target );
+			errors.add( "failed to update [[" + target + "]]" );
+		}
 	}
 
 	protected String getSparkline( String searchName ) {
 		SortedMap<Integer, Integer> resultCounts = outputBySearchByDay.get( searchName );
 		List<Double> numbers = new ArrayList<Double>();
 
+		if ( resultCounts == null || resultCounts.values() == null ) {
+			return "";
+		}
 		for ( Integer value : resultCounts.values() ) {
 			numbers.add( (double) value );
 		}
@@ -212,11 +226,17 @@ public class NewPageFetcher {
 		return new Sparkline().getSparkline( numbers );
 	}
 
-	protected void writeErrors( PageRules rules ) {
+	protected void writeErrors( PageRules rules, List<String> extra ) {
 		int rulecount = rules.getRules().size();
 
 		StringBuilder errorBuilder = new StringBuilder( rulecount + " searches processed.\n" );
 		errorBuilder.append( "{| class=\"wikitable\"\n! search\n! errors\n" );
+
+		if ( extra != null && extra.size() > 0 ) {
+			errorBuilder.append( "|-\n| Extra errors\n| <nowiki>" );
+			errorBuilder.append( join( "</nowiki><br />\n<nowiki>", extra.toArray( new String[extra.size()] ) ) );
+			errorBuilder.append( "</nowiki>\n" );
+		}
 
 		for ( PageRule rule : rules.getRules() ) {
 			if ( rule.getErrors().size() == 0 ) {
@@ -235,7 +255,7 @@ public class NewPageFetcher {
 		// print( "text: " + errorBuilder.toString() );
 
 		try {
-			wiki.edit( "User:TedderBot/SearchBotErrors", errorBuilder.toString(), "most recent errors", false );
+			editor.edit( "User:TedderBot/SearchBotErrors", errorBuilder.toString(), "most recent errors", false );
 		} catch ( Exception e ) {
 			// do nothing, we don't really care if the log fails.
 		}

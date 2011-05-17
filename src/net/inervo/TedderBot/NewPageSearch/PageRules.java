@@ -71,16 +71,10 @@ public class PageRules {
 
 		if ( rexMatcher.matches() ) {
 			String rule = rexMatcher.group( 1 ).trim();
-			String target = null;
-
-			if ( rexMatcher.groupCount() >= 3 ) {
-				target = rexMatcher.group( 3 );
-			}
-
 			String rulePage = "User:AlexNewArtBot/" + rule;
 
 			try {
-				prp = new PageRule( wiki, rulePage, rule, target );
+				prp = new PageRule( wiki, rulePage, rule );
 				// print( "WPRP: " + rulePage + " / " + rule + " / " + target + " / " + prp.getSearchName() );
 			} catch ( FileNotFoundException ex ) {
 				print( "ruleset doesn't exist: " + rulePage );

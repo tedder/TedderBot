@@ -127,7 +127,7 @@ public class ArticleScorer {
 		wiki.setMaxLag( 25 );
 
 		wiki.login( config.getWikipediaUser(), config.getWikipediaPassword().toCharArray() );
-		PageRule parser = new PageRule( wiki, "User:AlexNewArtBot/Oregon", "Oregon", null );
+		PageRule parser = new PageRule( wiki, "User:AlexNewArtBot/Oregon", "Oregon" );
 		print( "db lag (seconds): " + wiki.getCurrentDatabaseLag() );
 
 		ArticleCache ac = new ArticleCache( wiki );
