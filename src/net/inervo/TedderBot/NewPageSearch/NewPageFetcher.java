@@ -48,7 +48,8 @@ public class NewPageFetcher {
 	protected WMFWiki11 wiki = null;
 	protected WikiFetcher fetcher = null;
 	protected PageEditor editor = null;
-	protected List<String> errors = new ArrayList<String>();
+
+	// protected List<String> errors = new ArrayList<String>();
 
 	/**
 	 * Requires PersistentKeystore to be properly initialized.
@@ -67,8 +68,8 @@ public class NewPageFetcher {
 
 	public String getStartTime( String searchName ) throws FileNotFoundException, IllegalArgumentException, IOException {
 		String ruleName = "lastRunTime." + searchName;
-
 		String startTime = PersistentKeystore.get( ruleName );
+
 		if ( startTime == null || startTime.isEmpty() ) {
 			startTime = getDefaultStartTime();
 		}
@@ -110,6 +111,8 @@ public class NewPageFetcher {
 		String lastTimestamp = null;
 
 		Revisions revs = null;
+		print( "processing rule: " + rule.getSearchName() );
+
 		ArrayList<String> outputList = new ArrayList<String>();
 		SortedMap<Integer, Integer> outputByDay = new TreeMap<Integer, Integer>();
 
@@ -122,7 +125,10 @@ public class NewPageFetcher {
 			print( "rcstart: " + startTimestamp );
 		} while ( startTimestamp != null && startTimestamp.length() > 0 );
 
-		outputResults( rule, outputList, outputByDay );
+		int errorCount = writeRuleErrors( rule );
+		outputResultsForRule( rule, errorCount, outputList, outputByDay );
+
+		print( "done processing rule: " + rule.getSearchName() );
 
 		return lastTimestamp;
 	}
@@ -152,30 +158,24 @@ public class NewPageFetcher {
 		SimpleDateFormat sdf = new SimpleDateFormat( "HH:mm, dd MMMM yyyy" );
 		return "*{{la|" + rev.getPage() + "}} by {{User|" + rev.getUser() + "}} started at <span class=\"mw-newpages-time\">"
 				+ sdf.format( rev.getTimestamp().getTime() ) + "</span>, score: " + score;
-
 	}
 
-	protected void outputResults( PageRule rule, List<String> outputList, SortedMap<Integer, Integer> outputByDay ) throws Exception {
-		print( "processing rule: " + rule.getSearchName() );
+	protected void outputResultsForRule( PageRule rule, int searchErrorCount, List<String> results, SortedMap<Integer, Integer> outputByDay ) throws Exception {
 
-		int errorCount = writeRuleErrors( rule );
-		outputResultsForRule( rule.getSearchName(), rule.getRulePage(), rule.getSearchResultPage(), errorCount, outputList, outputByDay );
-
-		print( "done processing rule: " + rule.getSearchName() );
-	}
-
-	protected void outputResultsForRule( String searchName, String pageName, String target, int searchErrorCount, List<String> results,
-			SortedMap<Integer, Integer> outputByDay ) throws Exception {
 		StringBuilder searchResultText = new StringBuilder();
 		StringBuilder subject = new StringBuilder( "most recent results" );
 
 		if ( searchErrorCount > 0 ) {
 			subject.append( ", " + searchErrorCount + " [[User:TedderBot/SearchBotErrors|errors]]" );
-			searchResultText.append( "'''There were [[User:TedderBot/SearchBotErrors#" + searchName + "|" + searchErrorCount
-					+ " encountered]] while parsing the [[" + pageName + "|" + "rules for this search]].''' " );
+
+			String errorLabel = searchErrorCount == 0 ? "error" : "errors";
+
+			searchResultText.append( "'''There were [[" + rule.getErrorPage() + "|" + searchErrorCount + " " + errorLabel
+					+ " encountered]] while parsing the [[" + rule.getRulePage() + "|" + "rules for this search]].''' " );
 		}
 
-		searchResultText.append( "This list was generated from [[" + pageName + "]]. Questions and feedback [[User talk:Tedder|are always welcome]]! "
+		searchResultText.append( "This list was generated from [[" + rule.getRulePage()
+				+ "|these rules]]. Questions and feedback [[User talk:Tedder|are always welcome]]! "
 				+ "The search is being run manually, but eventually will run ~daily with the most ~7 days of results.\n\n" );
 
 		if ( results.size() > 0 ) {
@@ -190,18 +190,12 @@ public class NewPageFetcher {
 			searchResultText.append( "There are no current results for this search, sorry." );
 		}
 
-		subject.append( ", daily counts: " + getSparkline( searchName, outputByDay ) );
-
-		// int nums[] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
-		// for (int i:nums) {
-		// String s = String.format ("\\u%04x", 9600+c)
-		// }
+		subject.append( ", daily counts: " + getSparkline( rule.getSearchName(), outputByDay ) );
 
 		try {
-			editor.edit( target, searchResultText.toString(), subject.toString(), false );
+			editor.edit( rule.getSearchResultPage(), searchResultText.toString(), subject.toString(), false );
 		} catch ( IOException ex ) {
-			print( "failed updating " + target );
-			errors.add( "failed to update [[" + target + "]]" );
+			print( "failed updating " + rule.getSearchResultPage() );
 		}
 	}
 
