@@ -21,15 +21,10 @@ package net.inervo.TedderBot.NewPageSearch;
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-import java.io.File;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import net.inervo.WMFWiki11;
-import net.inervo.TedderBot.Configuration;
 import net.inervo.Wiki.WikiFetcher;
-import net.inervo.Wiki.Cache.ArticleCache;
-import net.inervo.Wiki.Cache.CachedFetcher;
 
 public class ArticleScorer {
 	private PageRule ruleset;
@@ -116,31 +111,6 @@ public class ArticleScorer {
 		}
 
 		return found;
-	}
-
-	public static void main( String[] args ) throws Exception {
-		print( "hello world!" );
-
-		Configuration config = new Configuration( new File( "wiki.properties" ) );
-
-		WMFWiki11 wiki = new WMFWiki11( "en.wikipedia.org" );
-		wiki.setMaxLag( 25 );
-
-		wiki.login( config.getWikipediaUser(), config.getWikipediaPassword().toCharArray() );
-		PageRule parser = new PageRule( wiki, "User:AlexNewArtBot/Oregon", "Oregon" );
-		print( "db lag (seconds): " + wiki.getCurrentDatabaseLag() );
-
-		ArticleCache ac = new ArticleCache( wiki );
-		// WikiFetcher fetcher = new CachedFetcher(ac);
-		WikiFetcher fetcher = new CachedFetcher( ac );
-
-		ArticleScorer scorer = new ArticleScorer( fetcher, parser, "Joseph Gramley" );
-		print( "lede: " + scorer.getLede( fetcher.getPageText( "Joseph Gramley" ) ) + "(end lede)" );
-		// print( "score: " + scorer.score( "This is a test with Portland, Oregon mentioned." ) );
-		// print( "score: " + scorer.score() );
-
-		ac.shutdown();
-
 	}
 
 	protected static void print( String s ) {

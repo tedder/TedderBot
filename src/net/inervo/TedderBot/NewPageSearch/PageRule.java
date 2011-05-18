@@ -21,9 +21,6 @@ package net.inervo.TedderBot.NewPageSearch;
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-import java.io.File;
-import java.io.IOException;
-import java.net.SocketTimeoutException;
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
@@ -32,15 +29,13 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
 
-import net.inervo.TedderBot.Configuration;
-
-import org.wikipedia.WMFWiki;
+import net.inervo.Wiki.WikiFetcher;
 
 public class PageRule {
 	private static final int DEFAULT_SCORE = 10;
 	private static final int DEFAULT_THRESHOLD = 10;
 
-	private WMFWiki wiki = null;
+	private WikiFetcher fetcher = null;
 	private String searchName = null;
 	private String pageName = null;
 	private int threshold = DEFAULT_THRESHOLD;
@@ -48,14 +43,14 @@ public class PageRule {
 	private List<MatchRule> patterns = new ArrayList<MatchRule>();
 	private List<String> errors = new LinkedList<String>();
 
-	public PageRule( WMFWiki wiki, String pageName, String searchName ) throws IOException {
-		this.wiki = wiki;
+	public PageRule( WikiFetcher fetcher, String pageName, String searchName ) throws Exception {
+		this.fetcher = fetcher;
 		this.searchName = searchName;
 		this.pageName = pageName;
 		parseRule( pageName );
 	}
 
-	private void parseRule( String pageName ) throws IOException {
+	private void parseRule( String pageName ) throws Exception {
 
 		Pattern rexLine = Pattern.compile( "^\\s*([\\-\\d]*)\\s*\\/(.*?)\\/\\s*(\\,\\s*.*\\s*)?$" );
 		Pattern defaultScorePattern = Pattern.compile( "^\\s*@@(\\d+)@@\\s*$" );
@@ -63,11 +58,9 @@ public class PageRule {
 
 		String input = null;
 		try {
-			input = wiki.getPageText( pageName );
-		} catch ( SocketTimeoutException ex ) {
-			// retry. Once.
-			print( "couldn't fetch page on first try, so we'll have another go at it. Page: " + pageName );
-			input = wiki.getPageText( pageName );
+			input = fetcher.getPageText( pageName );
+		} catch ( Exception ex ) {
+			throw new Exception( "failed fetching rule at " + pageName + ". Original exception: " + ex.getMessage() );
 		}
 		// print( "text: |" + input + "|" );
 		Scanner s = new Scanner( input ).useDelimiter( "\\n" );
@@ -188,26 +181,6 @@ public class PageRule {
 		}
 	}
 
-	@SuppressWarnings( "unused" )
-	public static void main( String[] args ) throws Exception {
-		String search = "Arctic";
-		print( "hello world!" );
-
-		Configuration config = new Configuration( new File( "wiki.properties" ) );
-
-		WMFWiki wiki = new WMFWiki( "en.wikipedia.org" );
-
-		wiki.login( config.getWikipediaUser(), config.getWikipediaPassword().toCharArray() );
-		PageRule parser = new PageRule( wiki, "User:AlexNewArtBot/" + search, search );
-		print( "db lag (seconds): " + wiki.getCurrentDatabaseLag() );
-		// parser.parseRule( );
-		// print( wiki.getPageText( "User:AlexNewArtBot/LosAngeles" ) );
-	}
-
-	private static void print( String s ) {
-		System.out.println( s );
-	}
-
 	public static class MatchRule {
 
 		private List<Pattern> ignore;
@@ -263,26 +236,63 @@ public class PageRule {
 
 	/** getters and setters **/
 
+	/**
+	 * search name. For instance, 'Oregon'.
+	 */
 	public String getSearchName() {
 		return searchName;
 	}
 
+	/**
+	 * list of match rules
+	 * 
+	 * @return
+	 */
 	public List<MatchRule> getPatterns() {
 		return patterns;
 	}
 
+	/**
+	 * list of errors created on parsing the rules
+	 * 
+	 * @return
+	 */
 	public List<String> getErrors() {
 		return errors;
 	}
 
-	public String getPageName() {
+	/**
+	 * configuration page, such as 'User:AlexNewArtBot/Oregon'
+	 * 
+	 * @return
+	 */
+	public String getRulePage() {
 		return pageName;
 	}
 
-	public String getTarget() {
+	/**
+	 * where we are placing errors for this configuration, such as 'User:TedderBot/NewPageSearch/Oregon/errors'
+	 * 
+	 * @return
+	 */
+	public String getErrorPage() {
+		return "User:TedderBot/NewPageSearch/" + searchName + "/errors";
+	}
+
+	/**
+	 * where we are putting search results, such as 'User:AlexNewArtBot/OregonSearchResult'
+	 * 
+	 * @return
+	 */
+	public String getSearchResultPage() {
 		return "User:AlexNewArtBot/" + searchName + "SearchResult";
 	}
 
+	/**
+	 * How many points is the threshold for inclusion. Default is 10, is embedded on rule page like @@20@@.
+	 * 
+	 * @return
+	 */
 	public int getThreshold() {
 		return threshold;
 	}

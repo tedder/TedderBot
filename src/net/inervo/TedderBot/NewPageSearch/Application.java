@@ -22,6 +22,9 @@ package net.inervo.TedderBot.NewPageSearch;
  */
 
 import java.io.File;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.List;
 import java.util.logging.Level;
 
 import net.inervo.WMFWiki11;
@@ -31,7 +34,6 @@ import net.inervo.Wiki.RetryEditor;
 import net.inervo.Wiki.WikiFetcher;
 import net.inervo.Wiki.Cache.ArticleCache;
 import net.inervo.Wiki.Cache.CachedFetcher;
-import net.inervo.data.Keystore;
 
 public class Application {
 	private static final boolean DEBUG_MODE = false;
@@ -44,7 +46,7 @@ public class Application {
 		ArticleCache ac = null;
 
 		try {
-			Keystore keystore = new Keystore( new File( "AwsCredentials.properties" ), "TedderBot.NewPageSearch" );
+			PersistentKeystore.initialize( new File( "AwsCredentials.properties" ), "TedderBot.NewPageSearch" );
 			Configuration config = new Configuration( new File( "wiki.properties" ) );
 
 			WMFWiki11 wiki = new WMFWiki11( "en.wikipedia.org" );
@@ -55,17 +57,71 @@ public class Application {
 			wiki.login( config.getWikipediaUser(), config.getWikipediaPassword().toCharArray() );
 			print( "db lag (seconds): " + wiki.getCurrentDatabaseLag() );
 
+			String debugOverride = DEBUG_MODE ? "Oregon" : null;
+
 			ac = new ArticleCache( wiki );
 			WikiFetcher fetcher = new CachedFetcher( ac );
+
+			PageRules rules = new PageRules( fetcher, "User:AlexNewArtBot/Master", debugOverride );
+
 			PageEditor editor = new RetryEditor( wiki );
 
-			NewPageFetcher npp = new NewPageFetcher( wiki, fetcher, editor, keystore, DEBUG_MODE );
-			npp.run();
+			String lastProcessed = PersistentKeystore.get( PersistentKeystore.LAST_PROCESSED );
+			print( "last processed: " + lastProcessed );
+			lastProcessed = "Oxford";
+
+			List<PageRule> ruleList = rules.getRules();
+			Comparator<PageRule> sorter = new SortRulesByRuleNameAlpha();
+			if ( lastProcessed != null ) {
+				sorter = new SortRulesByRuleNameAlphaOnPivot( lastProcessed );
+			}
+			Collections.sort( ruleList, sorter );
+
+			NewPageFetcher npp = new NewPageFetcher( wiki, fetcher, editor, DEBUG_MODE );
+
+			for ( PageRule rule : ruleList ) {
+				print( "rule: " + rule.getSearchName() );
+				// store it before we run. That way we'll begin at n+1 even if this one frequently fails.
+				PersistentKeystore.put( PersistentKeystore.LAST_PROCESSED, rule.getSearchName(), true );
+
+				npp.run( rule );
+			}
 
 		} finally {
 			if ( ac != null ) {
 				ac.shutdown();
 			}
+		}
+	}
+
+	public static class SortRulesByRuleNameAlphaOnPivot implements Comparator<PageRule> {
+		private String pivot;
+
+		public SortRulesByRuleNameAlphaOnPivot( String pivot ) {
+			this.pivot = pivot.toLowerCase();
+		};
+
+		@Override
+		public int compare( PageRule arg0, PageRule arg1 ) {
+			int zeroComp = pivot.compareTo( arg0.getSearchName().toLowerCase() );
+			int oneComp = pivot.compareTo( arg1.getSearchName().toLowerCase() );
+			int directComp = arg0.getSearchName().toLowerCase().compareTo( arg1.getSearchName().toLowerCase() );
+
+			if ( zeroComp * oneComp <= 0 ) {
+				return Math.abs( directComp );
+			}
+
+			return directComp;
+		}
+	}
+
+	public static class SortRulesByRuleNameAlpha implements Comparator<PageRule> {
+		public SortRulesByRuleNameAlpha() {
+		};
+
+		@Override
+		public int compare( PageRule arg0, PageRule arg1 ) {
+			return arg0.getSearchName().compareTo( arg1.getSearchName() );
 		}
 	}
 

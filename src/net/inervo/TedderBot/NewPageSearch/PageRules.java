@@ -22,27 +22,26 @@ package net.inervo.TedderBot.NewPageSearch;
  */
 
 import java.io.FileNotFoundException;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Scanner;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import org.wikipedia.WMFWiki;
+import net.inervo.Wiki.WikiFetcher;
 
 public class PageRules {
-	private WMFWiki wiki = null;
-	List<PageRule> pages = new ArrayList<PageRule>();
+	protected WikiFetcher fetcher = null;
+	protected List<PageRule> pages = new ArrayList<PageRule>();
 
-	public PageRules( WMFWiki wiki, String pageName, String ruleOverride ) throws IOException {
-		this.wiki = wiki;
+	public PageRules( WikiFetcher fetcher, String pageName, String ruleOverride ) throws Exception {
+		this.fetcher = fetcher;
 		parseMaster( pageName, ruleOverride );
 		// writeErrors();
 	}
 
-	protected void parseMaster( String masterPage, String ruleOverride ) throws IOException {
-		String input = wiki.getPageText( masterPage );
+	protected void parseMaster( String masterPage, String ruleOverride ) throws Exception {
+		String input = fetcher.getPageText( masterPage );
 		Scanner s = new Scanner( input ).useDelimiter( "\\n" );
 
 		// process each line into a page.
@@ -64,7 +63,7 @@ public class PageRules {
 		}
 	}
 
-	protected PageRule parseLine( String line ) throws IOException {
+	protected PageRule parseLine( String line ) throws Exception {
 		Pattern rexLine = Pattern.compile( "^(.+?)\\s*(=>\\s*(.*))?$" );
 		Matcher rexMatcher = rexLine.matcher( line );
 		PageRule prp = null;
@@ -74,7 +73,7 @@ public class PageRules {
 			String rulePage = "User:AlexNewArtBot/" + rule;
 
 			try {
-				prp = new PageRule( wiki, rulePage, rule );
+				prp = new PageRule( fetcher, rulePage, rule );
 				// print( "WPRP: " + rulePage + " / " + rule + " / " + target + " / " + prp.getSearchName() );
 			} catch ( FileNotFoundException ex ) {
 				print( "ruleset doesn't exist: " + rulePage );

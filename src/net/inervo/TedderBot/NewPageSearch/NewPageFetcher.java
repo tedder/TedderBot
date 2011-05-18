@@ -26,6 +26,7 @@ import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.Collections;
 import java.util.GregorianCalendar;
 import java.util.HashMap;
 import java.util.List;
@@ -38,7 +39,6 @@ import net.inervo.WMFWiki11.Revisions;
 import net.inervo.Wiki.PageEditor;
 import net.inervo.Wiki.WikiFetcher;
 import net.inervo.Wiki.WikiHelpers;
-import net.inervo.data.Keystore;
 
 import org.wikipedia.Wiki;
 import org.wikipedia.Wiki.Revision;
@@ -47,28 +47,48 @@ public class NewPageFetcher {
 	// consider this an "oversearch" period.
 	public static final int PREPEND_SEARCH_DAYS = -7;
 
-	protected static final String ORPHAN_BUCKET_NAME = "Orphan";
-
 	protected WMFWiki11 wiki = null;
 	protected Map<String, String> results = new HashMap<String, String>();
 	protected WikiFetcher fetcher = null;
 	protected boolean debug;
 	protected HashMap<String, ArrayList<String>> outputList = new HashMap<String, ArrayList<String>>();
 	protected HashMap<String, SortedMap<Integer, Integer>> outputBySearchByDay = new HashMap<String, SortedMap<Integer, Integer>>();
-	protected Keystore keystore = null;
 	protected PageEditor editor;
 	protected List<String> errors = new ArrayList<String>();
 
-	public NewPageFetcher( WMFWiki11 wiki, WikiFetcher fetcher, PageEditor editor, Keystore keystore, boolean debug ) {
+	/**
+	 * Requires PersistentKeystore to be properly initialized.
+	 * 
+	 * @param wiki
+	 * @param fetcher
+	 * @param editor
+	 * @param rule
+	 * @param debug
+	 */
+	public NewPageFetcher( WMFWiki11 wiki, WikiFetcher fetcher, PageEditor editor, boolean debug ) {
 		this.wiki = wiki;
 		this.fetcher = fetcher;
 		this.editor = editor;
-		this.keystore = keystore;
 		this.debug = debug;
 	}
 
-	public String getStartTime() throws FileNotFoundException, IllegalArgumentException, IOException {
-		String startTime = keystore.getKey( "lastRunTime" );
+	public String getStartTime( String searchName ) throws FileNotFoundException, IllegalArgumentException, IOException {
+		String ruleName = "lastRunTime." + searchName;
+
+		String startTime = PersistentKeystore.get( ruleName );
+		if ( startTime == null || startTime.isEmpty() ) {
+			startTime = getDefaultStartTime();
+		}
+
+		return startTime;
+	}
+
+	public void storeStartTime( String lastStamp, String searchName ) {
+		PersistentKeystore.put( "lastRunTime." + searchName, lastStamp, true );
+	}
+
+	public String getDefaultStartTime() throws FileNotFoundException, IllegalArgumentException, IOException {
+		String startTime = PersistentKeystore.get( "lastRunTime" );
 
 		Calendar start = null;
 		if ( startTime == null || startTime.isEmpty() ) {
@@ -87,32 +107,27 @@ public class NewPageFetcher {
 		return startTime;
 	}
 
-	public void run() throws Exception {
-		String endTime = runFetcher( getStartTime() );
-		storeStartTime( endTime );
+	public void run( PageRule rule ) throws Exception {
+		String endTime = runFetcher( getStartTime( rule.getSearchResultPage() ), rule );
+		storeStartTime( rule.getSearchResultPage(), endTime );
 	}
 
-	public void storeStartTime( String lastStamp ) {
-		keystore.put( "lastRunTime", lastStamp, true );
-	}
-
-	public String runFetcher( String startTimestamp ) throws Exception {
-		String debugOverride = debug ? "Oregon" : null;
+	public String runFetcher( String startTimestamp, PageRule rule ) throws Exception {
+		// String debugOverride = debug ? "Oregon" : null;
 		String lastTimestamp = null;
 
-		PageRules rules = new PageRules( wiki, "User:AlexNewArtBot/Master", debugOverride );
-
 		Revisions revs = null;
+
 		// String start = calendarToTimestamp( new GregorianCalendar( 2011, 04, 01, 0, 01, 03 ) );
 		do {
 			revs = fetch( 5000, startTimestamp );
-			lastTimestamp = processRevisions( rules, revs );
+			lastTimestamp = processRevisions( rule, revs );
 
 			startTimestamp = revs.getRcStart();
 			print( "rcstart: " + startTimestamp );
 		} while ( startTimestamp != null && startTimestamp.length() > 0 );
 
-		outputResults( rules );
+		outputResults( rule );
 
 		return lastTimestamp;
 	}
@@ -152,17 +167,13 @@ public class NewPageFetcher {
 
 	}
 
-	protected void outputResults( PageRules rules ) throws Exception {
-		writeErrors( rules, errors );
-		for ( PageRule rule : rules.getRules() ) {
-			print( "processing rule: " + rule.getSearchName() );
+	protected void outputResults( PageRule rule ) throws Exception {
+		print( "processing rule: " + rule.getSearchName() );
 
-			int searchErrorCount = 0;
-			if ( rule.getErrors() != null ) {
-				searchErrorCount = rule.getErrors().size();
-			}
-			outputResultsForRule( rule.getSearchName(), rule.getPageName(), rule.getTarget(), searchErrorCount );
-		}
+		int errorCount = writeRuleErrors( rule );
+		outputResultsForRule( rule.getSearchName(), rule.getRulePage(), rule.getSearchResultPage(), errorCount );
+
+		print( "done processing rule: " + rule.getSearchName() );
 	}
 
 	protected void outputResultsForRule( String searchName, String pageName, String target, int searchErrorCount ) throws Exception {
@@ -179,15 +190,13 @@ public class NewPageFetcher {
 					+ " encountered]] while parsing the [[" + pageName + "|" + "rules for this search]].''' " );
 		}
 
-		if ( outputList.containsKey( ORPHAN_BUCKET_NAME ) && outputList.get( ORPHAN_BUCKET_NAME ) != null ) {
-			searchResultText.append( "There were also " + outputList.get( ORPHAN_BUCKET_NAME ).size()
-					+ " new articles that weren't matched by any lists during this time period. " );
-		}
-
-		searchResultText.append( "This list was generated from [[" + pageName + "]]. Questions and feedback [[User talk:Tedder|are always welcome]]! The search is being run manually, but eventually will run ~daily with the most ~7 days of results.\n\n" );
+		searchResultText.append( "This list was generated from [[" + pageName + "]]. Questions and feedback [[User talk:Tedder|are always welcome]]! "
+				+ "The search is being run manually, but eventually will run ~daily with the most ~7 days of results.\n\n" );
 
 		if ( outputList.containsKey( searchName ) ) {
 			ArrayList<String> results = outputList.get( searchName );
+			Collections.reverse( results );
+
 			subject.append( ", " + results.size() + " results" );
 			for ( String line : results ) {
 				searchResultText.append( line );
@@ -226,42 +235,36 @@ public class NewPageFetcher {
 		return new Sparkline().getSparkline( numbers );
 	}
 
-	protected void writeErrors( PageRules rules, List<String> extra ) {
-		int rulecount = rules.getRules().size();
+	protected int writeRuleErrors( PageRule rule ) {
+		int patterncount = rule.getPatterns().size();
 
-		StringBuilder errorBuilder = new StringBuilder( rulecount + " searches processed.\n" );
-		errorBuilder.append( "{| class=\"wikitable\"\n! search\n! errors\n" );
+		StringBuilder errorBuilder = new StringBuilder( patterncount + " search patterns processed for this rule.\n\n" );
+		errorBuilder.append( "==Errors==\n" );
 
-		if ( extra != null && extra.size() > 0 ) {
-			errorBuilder.append( "|-\n| Extra errors\n| <nowiki>" );
-			errorBuilder.append( join( "</nowiki><br />\n<nowiki>", extra.toArray( new String[extra.size()] ) ) );
-			errorBuilder.append( "</nowiki>\n" );
+		int errorcount = 0;
+
+		if ( rule.getErrors() != null && rule.getErrors().size() > 0 ) {
+			errorcount = rule.getErrors().size();
+
+			errorBuilder.append( "<pre>" );
+			errorBuilder.append( join( "\n", rule.getErrors().toArray( new String[rule.getErrors().size()] ) ) );
+			errorBuilder.append( "</pre>\n" );
+
+		} else {
+			errorBuilder.append( "There were no errors. Hooray!\n" );
 		}
-
-		for ( PageRule rule : rules.getRules() ) {
-			if ( rule.getErrors().size() == 0 ) {
-				continue;
-			}
-			String link = "[[" + rule.getPageName() + "|" + rule.getSearchName() + "]]";
-			errorBuilder.append( "|-\n" );
-			errorBuilder.append( "| " );
-			errorBuilder.append( link );
-			errorBuilder.append( "\n| <nowiki>" );
-			errorBuilder.append( join( "</nowiki><br />\n<nowiki>", rule.getErrors().toArray( new String[rule.getErrors().size()] ) ) );
-			errorBuilder.append( "</nowiki>\n" );
-		}
-		errorBuilder.append( "\n|}\n" );
-
-		// print( "text: " + errorBuilder.toString() );
 
 		try {
-			editor.edit( "User:TedderBot/SearchBotErrors", errorBuilder.toString(), "most recent errors", false );
+			editor.edit( rule.getErrorPage(), errorBuilder.toString(), "most recent errors", false );
 		} catch ( Exception e ) {
+			print( "failed writing error page: " + rule.getErrorPage() );
 			// do nothing, we don't really care if the log fails.
 		}
+
+		return errorcount;
 	}
 
-	protected String processRevisions( PageRules rules, Revisions revs ) throws Exception {
+	protected String processRevisions( PageRule rule, Revisions revs ) throws Exception {
 		String lastRevisionTime = null;
 
 		for ( Revision rev : revs.getRevisionList() ) {
@@ -275,23 +278,13 @@ public class NewPageFetcher {
 				continue;
 			}
 
-			boolean matched = false;
-			for ( PageRule rule : rules.getRules() ) {
+			int score = new ArticleScorer( fetcher, rule, article ).score( pageText );
+			// print( "Article: " + article + ", score: " + score + ", search: " + rule.getSearchName() );
 
-				int score = new ArticleScorer( fetcher, rule, article ).score( pageText );
-				// print( "Article: " + article + ", score: " + score + ", search: " + rule.getSearchName() );
-
-				if ( score >= rule.getThreshold() ) {
-					print( "score is above threshold! Article: " + article + ", score: " + score + ", search: " + rule.getSearchName() + ", time: "
-							+ WikiHelpers.calendarToTimestamp( rev.getTimestamp() ) );
-					matched = true;
-					addEntryToOutputLists( rev, rule.getSearchName(), score );
-				}
-
-			}
-
-			if ( !matched ) {
-				addEntryToOutputLists( rev, ORPHAN_BUCKET_NAME, 1 );
+			if ( score >= rule.getThreshold() ) {
+				print( "score is above threshold! Article: " + article + ", score: " + score + ", search: " + rule.getSearchName() + ", time: "
+						+ WikiHelpers.calendarToTimestamp( rev.getTimestamp() ) );
+				addEntryToOutputLists( rev, rule.getSearchName(), score );
 			}
 
 			lastRevisionTime = WikiHelpers.calendarToTimestamp( rev.getTimestamp() );
