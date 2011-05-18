@@ -77,7 +77,7 @@ public class Application {
 			}
 			Collections.sort( ruleList, sorter );
 
-			NewPageFetcher npp = new NewPageFetcher( wiki, fetcher, editor, DEBUG_MODE );
+			NewPageFetcher npp = new NewPageFetcher( wiki, fetcher, editor );
 
 			for ( PageRule rule : ruleList ) {
 				print( "rule: " + rule.getSearchName() );

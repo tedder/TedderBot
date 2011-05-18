@@ -28,9 +28,7 @@ import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collections;
 import java.util.GregorianCalendar;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.SortedMap;
 import java.util.TreeMap;
 
@@ -48,12 +46,8 @@ public class NewPageFetcher {
 	public static final int PREPEND_SEARCH_DAYS = -7;
 
 	protected WMFWiki11 wiki = null;
-	protected Map<String, String> results = new HashMap<String, String>();
 	protected WikiFetcher fetcher = null;
-	protected boolean debug;
-	protected HashMap<String, ArrayList<String>> outputList = new HashMap<String, ArrayList<String>>();
-	protected HashMap<String, SortedMap<Integer, Integer>> outputBySearchByDay = new HashMap<String, SortedMap<Integer, Integer>>();
-	protected PageEditor editor;
+	protected PageEditor editor = null;
 	protected List<String> errors = new ArrayList<String>();
 
 	/**
@@ -65,11 +59,10 @@ public class NewPageFetcher {
 	 * @param rule
 	 * @param debug
 	 */
-	public NewPageFetcher( WMFWiki11 wiki, WikiFetcher fetcher, PageEditor editor, boolean debug ) {
+	public NewPageFetcher( WMFWiki11 wiki, WikiFetcher fetcher, PageEditor editor ) {
 		this.wiki = wiki;
 		this.fetcher = fetcher;
 		this.editor = editor;
-		this.debug = debug;
 	}
 
 	public String getStartTime( String searchName ) throws FileNotFoundException, IllegalArgumentException, IOException {
@@ -117,46 +110,41 @@ public class NewPageFetcher {
 		String lastTimestamp = null;
 
 		Revisions revs = null;
+		ArrayList<String> outputList = new ArrayList<String>();
+		SortedMap<Integer, Integer> outputByDay = new TreeMap<Integer, Integer>();
 
 		// String start = calendarToTimestamp( new GregorianCalendar( 2011, 04, 01, 0, 01, 03 ) );
 		do {
 			revs = fetch( 5000, startTimestamp );
-			lastTimestamp = processRevisions( rule, revs );
+			lastTimestamp = processRevisions( rule, revs, outputList, outputByDay );
 
 			startTimestamp = revs.getRcStart();
 			print( "rcstart: " + startTimestamp );
 		} while ( startTimestamp != null && startTimestamp.length() > 0 );
 
-		outputResults( rule );
+		outputResults( rule, outputList, outputByDay );
 
 		return lastTimestamp;
 	}
 
-	protected void addEntryToOutputLists( Revision rev, String searchName, int score ) {
+	protected void addEntryToOutputLists( Revision rev, String searchName, int score, List<String> outputList, SortedMap<Integer, Integer> outputByDay ) {
 		String text = getResultOutputLine( rev, score );
 
 		// main outputlist
-		if ( !outputList.containsKey( searchName ) ) {
-			ArrayList<String> textlist = new ArrayList<String>();
-			textlist.add( text );
-			outputList.put( searchName, textlist );
-		} else {
-			outputList.get( searchName ).add( text );
-		}
+		outputList.add( text );
 
 		// by search by day list
 		Integer datestamp = Integer.valueOf( WikiHelpers.calendarToDatestamp( rev.getTimestamp() ) );
-		if ( !outputBySearchByDay.containsKey( searchName ) ) {
-			SortedMap<Integer, Integer> daymap = new TreeMap<Integer, Integer>();
-			daymap.put( datestamp, 1 );
-			outputBySearchByDay.put( searchName, daymap );
+
+		if ( !outputByDay.containsKey( datestamp ) ) {
+			outputByDay.put( datestamp, 1 );
 		} else {
-			Integer count = outputBySearchByDay.get( searchName ).get( datestamp );
+			Integer count = outputByDay.get( datestamp );
 			if ( count == null ) {
 				count = 0;
 			}
 			++count;
-			outputBySearchByDay.get( searchName ).put( datestamp, count );
+			outputByDay.put( datestamp, count );
 		}
 	}
 
@@ -167,20 +155,17 @@ public class NewPageFetcher {
 
 	}
 
-	protected void outputResults( PageRule rule ) throws Exception {
+	protected void outputResults( PageRule rule, List<String> outputList, SortedMap<Integer, Integer> outputByDay ) throws Exception {
 		print( "processing rule: " + rule.getSearchName() );
 
 		int errorCount = writeRuleErrors( rule );
-		outputResultsForRule( rule.getSearchName(), rule.getRulePage(), rule.getSearchResultPage(), errorCount );
+		outputResultsForRule( rule.getSearchName(), rule.getRulePage(), rule.getSearchResultPage(), errorCount, outputList, outputByDay );
 
 		print( "done processing rule: " + rule.getSearchName() );
 	}
 
-	protected void outputResultsForRule( String searchName, String pageName, String target, int searchErrorCount ) throws Exception {
-		if ( debug && !searchName.equalsIgnoreCase( "oregon" ) ) {
-			return;
-		}
-
+	protected void outputResultsForRule( String searchName, String pageName, String target, int searchErrorCount, List<String> results,
+			SortedMap<Integer, Integer> outputByDay ) throws Exception {
 		StringBuilder searchResultText = new StringBuilder();
 		StringBuilder subject = new StringBuilder( "most recent results" );
 
@@ -193,8 +178,7 @@ public class NewPageFetcher {
 		searchResultText.append( "This list was generated from [[" + pageName + "]]. Questions and feedback [[User talk:Tedder|are always welcome]]! "
 				+ "The search is being run manually, but eventually will run ~daily with the most ~7 days of results.\n\n" );
 
-		if ( outputList.containsKey( searchName ) ) {
-			ArrayList<String> results = outputList.get( searchName );
+		if ( results.size() > 0 ) {
 			Collections.reverse( results );
 
 			subject.append( ", " + results.size() + " results" );
@@ -206,7 +190,7 @@ public class NewPageFetcher {
 			searchResultText.append( "There are no current results for this search, sorry." );
 		}
 
-		subject.append( ", daily counts: " + getSparkline( searchName ) );
+		subject.append( ", daily counts: " + getSparkline( searchName, outputByDay ) );
 
 		// int nums[] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
 		// for (int i:nums) {
@@ -221,8 +205,7 @@ public class NewPageFetcher {
 		}
 	}
 
-	protected String getSparkline( String searchName ) {
-		SortedMap<Integer, Integer> resultCounts = outputBySearchByDay.get( searchName );
+	protected String getSparkline( String searchName, SortedMap<Integer, Integer> resultCounts ) {
 		List<Double> numbers = new ArrayList<Double>();
 
 		if ( resultCounts == null || resultCounts.values() == null ) {
@@ -264,7 +247,7 @@ public class NewPageFetcher {
 		return errorcount;
 	}
 
-	protected String processRevisions( PageRule rule, Revisions revs ) throws Exception {
+	protected String processRevisions( PageRule rule, Revisions revs, List<String> outputList, SortedMap<Integer, Integer> outputByDay ) throws Exception {
 		String lastRevisionTime = null;
 
 		for ( Revision rev : revs.getRevisionList() ) {
@@ -284,7 +267,8 @@ public class NewPageFetcher {
 			if ( score >= rule.getThreshold() ) {
 				print( "score is above threshold! Article: " + article + ", score: " + score + ", search: " + rule.getSearchName() + ", time: "
 						+ WikiHelpers.calendarToTimestamp( rev.getTimestamp() ) );
-				addEntryToOutputLists( rev, rule.getSearchName(), score );
+
+				addEntryToOutputLists( rev, rule.getSearchName(), score, outputList, outputByDay );
 			}
 
 			lastRevisionTime = WikiHelpers.calendarToTimestamp( rev.getTimestamp() );
