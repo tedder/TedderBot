@@ -24,6 +24,7 @@ package net.inervo.TedderBot.NewPageSearch;
 import java.io.EOFException;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.net.SocketTimeoutException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
@@ -273,12 +274,21 @@ public class NewPageFetcher {
 
 	public Revisions fetch( int fetchPageCount, String rcstart ) throws Exception {
 		Revisions revs = null;
+		String retry = null;
+
 		try {
 			revs = wiki.newPages( fetchPageCount, Wiki.MAIN_NAMESPACE, 0, rcstart );
+		} catch ( SocketTimeoutException ex ) {
+			retry = ex.getMessage();
 		} catch ( EOFException ex ) {
-			print( "failed getting new pages, trying again." );
+			retry = ex.getMessage();
+		}
+
+		if ( retry != null ) {
+			print( "trying to fetch new pages again. Previous error: " + retry );
 			revs = wiki.newPages( fetchPageCount, Wiki.MAIN_NAMESPACE, 0, rcstart );
 		}
+
 		return revs;
 	}
 
