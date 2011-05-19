@@ -29,6 +29,7 @@ import java.util.TimeZone;
 import java.util.logging.Level;
 
 import net.inervo.WMFWiki11;
+import net.inervo.TedderBot.BotFlag;
 import net.inervo.TedderBot.Configuration;
 import net.inervo.Wiki.PageEditor;
 import net.inervo.Wiki.RetryEditor;
@@ -62,6 +63,7 @@ public class NewPageSearchApplication {
 			// wiki.setThrottle( 5000 );
 			wiki.login( config.getWikipediaUser(), config.getWikipediaPassword().toCharArray() );
 			print( "db lag (seconds): " + wiki.getCurrentDatabaseLag() );
+			BotFlag.check(wiki);
 
 			String debugOverride = DEBUG_MODE ? "Oregon" : null;
 
@@ -86,6 +88,7 @@ public class NewPageSearchApplication {
 			NewPageFetcher npp = new NewPageFetcher( wiki, fetcher, editor );
 
 			for ( PageRule rule : ruleList ) {
+				BotFlag.check(wiki);
 				print( "processing rule " + rule.getSearchName() + ", start time: "
 						+ WikiHelpers.calendarToTimestamp( new GregorianCalendar( TimeZone.getTimeZone( "America/Los_Angeles" ) ) ) );
 				long startClock = System.currentTimeMillis();
