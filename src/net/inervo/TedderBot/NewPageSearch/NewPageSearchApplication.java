@@ -21,7 +21,6 @@ package net.inervo.TedderBot.NewPageSearch;
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-import java.io.File;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.GregorianCalendar;
@@ -49,8 +48,8 @@ public class NewPageSearchApplication {
 		ArticleCache ac = null;
 
 		try {
-			PersistentKeystore.initialize( new File( "AwsCredentials.properties" ), "TedderBot.NewPageSearch" );
-			Configuration config = new Configuration( new File( "wiki.properties" ) );
+			PersistentKeystore.initialize( "AwsCredentials.properties", "TedderBot.NewPageSearch" );
+			Configuration config = new Configuration( "wiki.properties" );
 
 			WMFWiki11 wiki = new WMFWiki11( "en.wikipedia.org" );
 			wiki.setMaxLag( 15 );

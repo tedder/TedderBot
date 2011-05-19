@@ -21,16 +21,14 @@ package net.inervo.TedderBot;
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-import java.io.File;
-import java.io.FileReader;
 import java.io.IOException;
 import java.util.Properties;
 
 public class Configuration {
 	private Properties configFile = null;
-	private File filename = null;
+	private String filename = null;
 
-	public Configuration( File filename ) throws IOException {
+	public Configuration( String filename ) throws IOException {
 		this.filename = filename;
 		configFile = new Properties();
 		loadConfigurationFile();
@@ -48,7 +46,13 @@ public class Configuration {
 		// configFile.load(
 		// this.getClass().getClassLoader().getResourceAsStream(
 		// "/wiki.properties" ) );
-		configFile.load( new FileReader( filename ) );
+		// configFile.load( new FileReader( filename ) );
+		// configFile.load( this.getClass().getClassLoader().getResourceAsStream( new FileReader(filename) ) );
+
+		// ClassPathResource cpr = new ClassPathResource("ems-init.properties");
+		// Properties properties = loadProps(emsInitResource.getInputStream());
+
+		configFile.load( this.getClass().getClassLoader().getResourceAsStream( filename ) );
 
 	}
 }

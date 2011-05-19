@@ -1,10 +1,6 @@
 package net.inervo.TedderBot.NewPageSearch;
 
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.IOException;
-
-import net.inervo.data.Keystore;
+import net.inervo.Keystore;
 
 public class PersistentKeystore {
 	public static final String LAST_PROCESSED = "lastProcessed";
@@ -14,14 +10,23 @@ public class PersistentKeystore {
 	private PersistentKeystore() {
 	}
 
+	// private PersistentKeystore( String keyName ) throws Exception {
+	// this( "AwsCredentials.properties", keyName );
+	// }
+	//
+	// private PersistentKeystore( String fileName, String keyName ) throws Exception {
+	// File file = new File( PersistentKeystore.class.getClassLoader().getSystemResource( fileName ).toURI() );
+	// keystoreInstance = new Keystore( file, keyName );
+	// }
+
 	protected static void verifyInstantiation() throws Exception {
 		if ( keystoreInstance == null ) {
 			throw new Exception( "Persistent keystore was not properly created. It requires an explicit initialization." );
 		}
 	}
 
-	protected static void initialize( File propFile, String keyName ) throws FileNotFoundException, IllegalArgumentException, IOException {
-		keystoreInstance = new Keystore( new File( "AwsCredentials.properties" ), keyName );
+	protected static void initialize( String propFile, String keyName ) throws Exception {
+		keystoreInstance = new Keystore( propFile, keyName );
 	}
 
 	protected static Keystore getKeystore() {

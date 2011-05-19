@@ -4,6 +4,6 @@
 	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
 	<classpathentry combineaccessrules="false" kind="src" path="/jwiki"/>
 	<classpathentry combineaccessrules="false" kind="src" path="/project-libs"/>
-	<classpathentry combineaccessrules="false" kind="src" path="/SmallProjects"/>
+	<classpathentry kind="con" path="com.amazonaws.eclipse.sdk.AWS_JAVA_SDK"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>
