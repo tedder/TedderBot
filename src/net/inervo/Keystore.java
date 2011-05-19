@@ -3,7 +3,6 @@ package net.inervo;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -23,21 +22,15 @@ public class Keystore {
 	AmazonSimpleDB sdb = null;
 	String itemKey = null;
 
-	public Keystore( String itemKey ) throws IOException {
-		this( new File( "AwsCredentials.properties" ), itemKey );
-	}
+	// public Keystore( String itemKey ) throws IOException {
+	// this( new File( "AwsCredentials.properties" ), itemKey );
+	// }
 
-	public Keystore( String propFilename, String itemKey ) throws FileNotFoundException, IllegalArgumentException, IOException, URISyntaxException {
-		Keystore.class.getClassLoader();
-		File file = new File( ClassLoader.getSystemResource( propFilename ).toURI() );
-		init( file, itemKey );
+	public Keystore( String propFilename, String itemKey ) throws FileNotFoundException, IllegalArgumentException, IOException {
+		this( new File( propFilename ), itemKey );
 	}
 
 	public Keystore( File propFile, String itemKey ) throws FileNotFoundException, IllegalArgumentException, IOException {
-		init( propFile, itemKey );
-	}
-
-	protected void init( File propFile, String itemKey ) throws FileNotFoundException, IllegalArgumentException, IOException {
 		sdb = new AmazonSimpleDBClient( new PropertiesCredentials( propFile ) );
 		createDataDomainIfNecessary( DEFAULT_DATA_DOMAIN );
 		this.itemKey = itemKey;

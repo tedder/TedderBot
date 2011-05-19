@@ -41,6 +41,10 @@ public class NewPageSearchApplication {
 	private static final boolean DEBUG_MODE = false;
 
 	public static void main( String[] args ) throws Exception {
+		if ( args.length < 2 ) {
+			print( "need params given in this order: AWS prop file, wiki prop file" );
+		}
+
 		// shutdown hook. Enable early so we don't blow up the cache.
 		System.setProperty( "net.sf.ehcache.enableShutdownHook", "true" );
 
@@ -48,8 +52,8 @@ public class NewPageSearchApplication {
 		ArticleCache ac = null;
 
 		try {
-			PersistentKeystore.initialize( "AwsCredentials.properties", "TedderBot.NewPageSearch" );
-			Configuration config = new Configuration( "wiki.properties" );
+			PersistentKeystore.initialize( args[0], "TedderBot.NewPageSearch" );
+			Configuration config = new Configuration( args[1] );
 
 			WMFWiki11 wiki = new WMFWiki11( "en.wikipedia.org" );
 			wiki.setMaxLag( 15 );
