@@ -12,9 +12,9 @@ public class BotFlag {
 	public static void check( Wiki wiki ) throws IOException, WikiPermissionException {
 		String content = wiki.getPageText( "User:TedderBot/Bot_status" );
 
-		boolean okayToRun = Pattern.compile( "^status: run\b", Pattern.MULTILINE | Pattern.CASE_INSENSITIVE ).matcher( content ).matches();
+		boolean okayToRun = Pattern.compile( "^status: run\\b", Pattern.CASE_INSENSITIVE ).matcher( content ).find();
 		if ( !okayToRun ) {
-			throw new WikiPermissionException( "not authorized to run, according to bot status page." );
+			throw new WikiPermissionException( "not authorized to run, according to bot status page.\nContents:\n" + content );
 		}
 	}
 
