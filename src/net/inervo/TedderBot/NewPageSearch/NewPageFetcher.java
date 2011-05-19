@@ -21,6 +21,7 @@ package net.inervo.TedderBot.NewPageSearch;
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+import java.io.EOFException;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
@@ -111,14 +112,15 @@ public class NewPageFetcher {
 		String lastTimestamp = null;
 
 		Revisions revs = null;
-		print( "processing rule: " + rule.getSearchName() );
 
 		ArrayList<String> outputList = new ArrayList<String>();
 		SortedMap<Integer, Integer> outputByDay = new TreeMap<Integer, Integer>();
 
 		// String start = calendarToTimestamp( new GregorianCalendar( 2011, 04, 01, 0, 01, 03 ) );
 		do {
+			print( "about to start fetch of stamp: " + startTimestamp );
 			revs = fetch( 5000, startTimestamp );
+			print( "done with fetch of stamp: " + startTimestamp );
 			lastTimestamp = processRevisions( rule, revs, outputList, outputByDay );
 
 			startTimestamp = revs.getRcStart();
@@ -127,8 +129,6 @@ public class NewPageFetcher {
 
 		int errorCount = writeRuleErrors( rule );
 		outputResultsForRule( rule, errorCount, outputList, outputByDay );
-
-		print( "done processing rule: " + rule.getSearchName() );
 
 		return lastTimestamp;
 	}
@@ -272,7 +272,14 @@ public class NewPageFetcher {
 	}
 
 	public Revisions fetch( int fetchPageCount, String rcstart ) throws Exception {
-		return wiki.newPages( fetchPageCount, Wiki.MAIN_NAMESPACE, 0, rcstart );
+		Revisions revs = null;
+		try {
+			revs = wiki.newPages( fetchPageCount, Wiki.MAIN_NAMESPACE, 0, rcstart );
+		} catch ( EOFException ex ) {
+			print( "failed getting new pages, trying again." );
+			revs = wiki.newPages( fetchPageCount, Wiki.MAIN_NAMESPACE, 0, rcstart );
+		}
+		return revs;
 	}
 
 	/*** helper functions ***/

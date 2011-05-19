@@ -24,7 +24,9 @@ package net.inervo.TedderBot.NewPageSearch;
 import java.io.File;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.GregorianCalendar;
 import java.util.List;
+import java.util.TimeZone;
 import java.util.logging.Level;
 
 import net.inervo.WMFWiki11;
@@ -32,6 +34,7 @@ import net.inervo.TedderBot.Configuration;
 import net.inervo.Wiki.PageEditor;
 import net.inervo.Wiki.RetryEditor;
 import net.inervo.Wiki.WikiFetcher;
+import net.inervo.Wiki.WikiHelpers;
 import net.inervo.Wiki.Cache.ArticleCache;
 import net.inervo.Wiki.Cache.CachedFetcher;
 
@@ -80,11 +83,18 @@ public class Application {
 			NewPageFetcher npp = new NewPageFetcher( wiki, fetcher, editor );
 
 			for ( PageRule rule : ruleList ) {
-				print( "rule: " + rule.getSearchName() );
+				print( "processing rule " + rule.getSearchName() + ", start time: "
+						+ WikiHelpers.calendarToTimestamp( new GregorianCalendar( TimeZone.getTimeZone( "America/Los_Angeles" ) ) ) );
+				long startClock = System.currentTimeMillis();
+
 				// store it before we run. That way we'll begin at n+1 even if this one frequently fails.
 				PersistentKeystore.put( PersistentKeystore.LAST_PROCESSED, rule.getSearchName(), true );
 
 				npp.run( rule );
+
+				long endClock = System.currentTimeMillis();
+				print( "done processing rule " + rule.getSearchName() + ", time: " + deltaMillisecondsToString( endClock - startClock ) );
+
 			}
 
 		} finally {
@@ -113,6 +123,14 @@ public class Application {
 
 			return directComp;
 		}
+	}
+
+	public static String deltaMillisecondsToString( long delta ) {
+		long deltaSeconds = ( delta / 1000 ) % 60;
+		long deltaMinutes = ( deltaSeconds / 60 ) % 60;
+		long deltaHours = ( deltaMinutes / 60 ) % 60;
+
+		return String.format( "%d hours, %d minutes, %d seconds", deltaHours, deltaMinutes, deltaSeconds );
 	}
 
 	public static class SortRulesByRuleNameAlpha implements Comparator<PageRule> {

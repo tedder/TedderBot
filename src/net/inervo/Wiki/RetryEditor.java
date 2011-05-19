@@ -14,7 +14,7 @@ public class RetryEditor implements PageEditor {
 	public void edit( String title, String text, String summary, boolean minor ) throws Exception {
 
 		boolean success = false;
-		for ( int i = 0; i < 5; ++i ) {
+		for ( int i = 0; success == false && i < 5; ++i ) {
 			try {
 				wiki.edit( title, text, summary, minor );
 				success = true;
@@ -22,6 +22,7 @@ public class RetryEditor implements PageEditor {
 				// retry once.
 				System.err.println( "Sleeping, couldn't edit page: " + title );
 				Thread.sleep( 1000 );
+				System.err.println( "Done sleeping: " + title );
 			}
 		}
 

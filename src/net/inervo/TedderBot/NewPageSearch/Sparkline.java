@@ -30,6 +30,9 @@ public class Sparkline {
 	protected static final int SPARK_SCALE_UNITS = SPARK_UNICODE_VALUES.length - 1;
 
 	public String getSparkline( List<Double> nums ) {
+		if (nums == null || nums.size() ==0) {
+			return "";
+		}
 
 		double min = Collections.min( nums );
 		double max = Collections.max( nums );
