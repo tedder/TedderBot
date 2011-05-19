@@ -38,7 +38,7 @@ import net.inervo.Wiki.WikiHelpers;
 import net.inervo.Wiki.Cache.ArticleCache;
 import net.inervo.Wiki.Cache.CachedFetcher;
 
-public class Application {
+public class NewPageSearchApplication {
 	private static final boolean DEBUG_MODE = false;
 
 	public static void main( String[] args ) throws Exception {
