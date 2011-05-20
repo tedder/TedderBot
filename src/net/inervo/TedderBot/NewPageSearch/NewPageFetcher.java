@@ -144,10 +144,8 @@ public class NewPageFetcher {
 		StringBuilder subject = new StringBuilder( "most recent results" );
 
 		if ( searchErrorCount > 0 ) {
-			subject.append( ", " + searchErrorCount + " [[User:TedderBot/SearchBotErrors|errors]]" );
-
 			String errorLabel = searchErrorCount == 0 ? "error" : "errors";
-
+			subject.append( ", " + searchErrorCount + " [[" + rule.getErrorPage() + "|" + errorLabel + "]]" );
 			searchResultText.append( "'''There were [[" + rule.getErrorPage() + "|" + searchErrorCount + " " + errorLabel
 					+ " encountered]] while parsing the [[" + rule.getRulePage() + "|" + "rules for this search]].''' " );
 		}
