@@ -22,14 +22,11 @@ package net.inervo.TedderBot.NewPageSearch;
  */
 
 import java.io.EOFException;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.net.SocketTimeoutException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Calendar;
 import java.util.Collections;
-import java.util.GregorianCalendar;
 import java.util.List;
 import java.util.SortedMap;
 import java.util.TreeMap;
@@ -44,9 +41,6 @@ import org.wikipedia.Wiki;
 import org.wikipedia.Wiki.Revision;
 
 public class NewPageFetcher {
-	// consider this an "oversearch" period.
-	public static final int PREPEND_SEARCH_DAYS = -7;
-
 	protected WMFWiki11 wiki = null;
 	protected WikiFetcher fetcher = null;
 	protected PageEditor editor = null;
@@ -54,7 +48,6 @@ public class NewPageFetcher {
 	// protected List<String> errors = new ArrayList<String>();
 
 	/**
-	 * Requires PersistentKeystore to be properly initialized.
 	 * 
 	 * @param wiki
 	 * @param fetcher
@@ -66,45 +59,6 @@ public class NewPageFetcher {
 		this.wiki = wiki;
 		this.fetcher = fetcher;
 		this.editor = editor;
-	}
-
-	public String getStartTime( String searchName ) throws FileNotFoundException, IllegalArgumentException, IOException {
-		String startTime = PersistentKeystore.get( searchName, "lastRunTime" );
-
-		if ( startTime == null || startTime.isEmpty() ) {
-			startTime = getDefaultStartTime();
-		}
-
-		return startTime;
-	}
-
-	public void storeStartTime( String searchName, String lastStamp ) {
-		PersistentKeystore.put( searchName, "lastRunTime", lastStamp, true );
-	}
-
-	public String getDefaultStartTime() throws FileNotFoundException, IllegalArgumentException, IOException {
-		String startTime = PersistentKeystore.get( "default", "lastRunTime" );
-
-		Calendar start = null;
-		if ( startTime == null || startTime.isEmpty() ) {
-			// if we didn't have the key in our keystore, use a default of today minus our padding.
-			start = new GregorianCalendar();
-		} else {
-			start = WikiHelpers.timestampToCalendar( startTime );
-		}
-
-		// pad back the start time.
-		start.add( Calendar.DAY_OF_MONTH, PREPEND_SEARCH_DAYS );
-
-		// given our Calendar object, get a String (again).
-		startTime = WikiHelpers.calendarToTimestamp( start );
-
-		return startTime;
-	}
-
-	public void run( PageRule rule ) throws Exception {
-		String endTime = runFetcher( getStartTime( rule.getSearchResultPage() ), rule );
-		storeStartTime( rule.getSearchResultPage(), endTime );
 	}
 
 	public String runFetcher( String startTimestamp, PageRule rule ) throws Exception {

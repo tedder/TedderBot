@@ -21,6 +21,9 @@ package net.inervo.TedderBot.NewPageSearch;
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.util.Calendar;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.GregorianCalendar;
@@ -39,7 +42,10 @@ import net.inervo.Wiki.Cache.ArticleCache;
 import net.inervo.Wiki.Cache.CachedFetcher;
 
 public class NewPageSearchApplication {
+	private static final long DAY_IN_MILLISECONDS = 86400000;
 	private static final boolean DEBUG_MODE = false;
+	// consider this an "oversearch" period.
+	public static final int PREPEND_SEARCH_DAYS = -7;
 
 	public static void main( String[] args ) throws Exception {
 		if ( args.length < 2 ) {
@@ -63,7 +69,7 @@ public class NewPageSearchApplication {
 			// wiki.setThrottle( 5000 );
 			wiki.login( config.getWikipediaUser(), config.getWikipediaPassword().toCharArray() );
 			print( "db lag (seconds): " + wiki.getCurrentDatabaseLag() );
-			BotFlag.check(wiki);
+			BotFlag.check( wiki );
 
 			String debugOverride = DEBUG_MODE ? "Oregon" : null;
 
@@ -76,7 +82,6 @@ public class NewPageSearchApplication {
 
 			String lastProcessed = PersistentKeystore.get( PersistentKeystore.DEFAULT_KEY, PersistentKeystore.LAST_PROCESSED );
 			print( "last processed: " + lastProcessed );
-			lastProcessed = "Oxford";
 
 			List<PageRule> ruleList = rules.getRules();
 			Comparator<PageRule> sorter = new SortRulesByRuleNameAlpha();
@@ -88,18 +93,28 @@ public class NewPageSearchApplication {
 			NewPageFetcher npp = new NewPageFetcher( wiki, fetcher, editor );
 
 			for ( PageRule rule : ruleList ) {
-				BotFlag.check(wiki);
-				print( "processing rule " + rule.getSearchName() + ", start time: "
+				BotFlag.check( wiki );
+
+				String searchName = rule.getSearchName();
+
+				print( "processing rule " + searchName + ", current time: "
 						+ WikiHelpers.calendarToTimestamp( new GregorianCalendar( TimeZone.getTimeZone( "America/Los_Angeles" ) ) ) );
 				long startClock = System.currentTimeMillis();
 
 				// store it before we run. That way we'll begin at n+1 even if this one frequently fails.
 				PersistentKeystore.put( PersistentKeystore.DEFAULT_KEY, PersistentKeystore.LAST_PROCESSED, rule.getSearchName(), true );
-
-				npp.run( rule );
+				
+				String startTime = getStartTime( searchName );
+				if ( ! isDeltaGreaterThanOneDay(WikiHelpers.timestampToCalendar( startTime ), new GregorianCalendar() ) ) {
+					print(" rule has been run recently, skipping.");
+					continue;
+				}
+				
+				String endTime = npp.runFetcher( startTime, rule );
+				storeStartTime( searchName, endTime );
 
 				long endClock = System.currentTimeMillis();
-				print( "done processing rule " + rule.getSearchName() + ", time: " + deltaMillisecondsToString( endClock - startClock ) );
+				print( "done processing rule " + searchName + ", time: " + deltaMillisecondsToString( endClock - startClock ) );
 
 			}
 
@@ -131,6 +146,14 @@ public class NewPageSearchApplication {
 		}
 	}
 
+	public static boolean isDeltaGreaterThanOneDay( Calendar obj1, Calendar obj2 ) {
+		long delta = Math.abs( obj1.getTimeInMillis() - obj2.getTimeInMillis() );
+		if ( delta > DAY_IN_MILLISECONDS ) {
+			return true;
+		}
+		return false;
+	}
+
 	public static String deltaMillisecondsToString( long delta ) {
 		long deltaSeconds = ( delta / 1000 ) % 60;
 		long deltaMinutes = ( deltaSeconds / 60 ) % 60;
@@ -151,6 +174,40 @@ public class NewPageSearchApplication {
 
 	private static void print( String s ) {
 		System.out.println( s );
+	}
+
+	public static String getStartTime( String searchName ) throws FileNotFoundException, IllegalArgumentException, IOException {
+		String startTime = PersistentKeystore.get( searchName, "lastRunTime" );
+
+		if ( startTime == null || startTime.isEmpty() ) {
+			startTime = getDefaultStartTime();
+		}
+
+		return startTime;
+	}
+
+	public static void storeStartTime( String searchName, String lastStamp ) {
+		PersistentKeystore.put( searchName, "lastRunTime", lastStamp, true );
+	}
+
+	public static String getDefaultStartTime() throws FileNotFoundException, IllegalArgumentException, IOException {
+		String startTime = PersistentKeystore.get( "default", "lastRunTime" );
+
+		Calendar start = null;
+		if ( startTime == null || startTime.isEmpty() ) {
+			// if we didn't have the key in our keystore, use a default of today minus our padding.
+			start = new GregorianCalendar();
+		} else {
+			start = WikiHelpers.timestampToCalendar( startTime );
+		}
+
+		// pad back the start time.
+		start.add( Calendar.DAY_OF_MONTH, PREPEND_SEARCH_DAYS );
+
+		// given our Calendar object, get a String (again).
+		startTime = WikiHelpers.calendarToTimestamp( start );
+
+		return startTime;
 	}
 
 }
