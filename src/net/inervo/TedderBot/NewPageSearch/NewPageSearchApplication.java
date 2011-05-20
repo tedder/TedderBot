@@ -53,7 +53,7 @@ public class NewPageSearchApplication {
 		ArticleCache ac = null;
 
 		try {
-			PersistentKeystore.initialize( args[0], "TedderBot.NewPageSearch" );
+			PersistentKeystore.initialize( args[0] );
 			Configuration config = new Configuration( args[1] );
 
 			WMFWiki11 wiki = new WMFWiki11( "en.wikipedia.org" );
@@ -74,7 +74,7 @@ public class NewPageSearchApplication {
 
 			PageEditor editor = new RetryEditor( wiki );
 
-			String lastProcessed = PersistentKeystore.get( PersistentKeystore.LAST_PROCESSED );
+			String lastProcessed = PersistentKeystore.get( PersistentKeystore.DEFAULT_KEY, PersistentKeystore.LAST_PROCESSED );
 			print( "last processed: " + lastProcessed );
 			lastProcessed = "Oxford";
 
@@ -94,7 +94,7 @@ public class NewPageSearchApplication {
 				long startClock = System.currentTimeMillis();
 
 				// store it before we run. That way we'll begin at n+1 even if this one frequently fails.
-				PersistentKeystore.put( PersistentKeystore.LAST_PROCESSED, rule.getSearchName(), true );
+				PersistentKeystore.put( PersistentKeystore.DEFAULT_KEY, PersistentKeystore.LAST_PROCESSED, rule.getSearchName(), true );
 
 				npp.run( rule );
 

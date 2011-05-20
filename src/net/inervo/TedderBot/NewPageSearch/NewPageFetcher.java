@@ -69,8 +69,7 @@ public class NewPageFetcher {
 	}
 
 	public String getStartTime( String searchName ) throws FileNotFoundException, IllegalArgumentException, IOException {
-		String ruleName = "lastRunTime." + searchName;
-		String startTime = PersistentKeystore.get( ruleName );
+		String startTime = PersistentKeystore.get( searchName, "lastRunTime" );
 
 		if ( startTime == null || startTime.isEmpty() ) {
 			startTime = getDefaultStartTime();
@@ -79,12 +78,12 @@ public class NewPageFetcher {
 		return startTime;
 	}
 
-	public void storeStartTime( String lastStamp, String searchName ) {
-		PersistentKeystore.put( "lastRunTime." + searchName, lastStamp, true );
+	public void storeStartTime( String searchName, String lastStamp ) {
+		PersistentKeystore.put( searchName, "lastRunTime", lastStamp, true );
 	}
 
 	public String getDefaultStartTime() throws FileNotFoundException, IllegalArgumentException, IOException {
-		String startTime = PersistentKeystore.get( "lastRunTime" );
+		String startTime = PersistentKeystore.get( "default", "lastRunTime" );
 
 		Calendar start = null;
 		if ( startTime == null || startTime.isEmpty() ) {

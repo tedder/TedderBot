@@ -3,6 +3,7 @@ package net.inervo.TedderBot.NewPageSearch;
 import net.inervo.Keystore;
 
 public class PersistentKeystore {
+	public static final String DEFAULT_KEY = "default";
 	public static final String LAST_PROCESSED = "lastProcessed";
 
 	protected static Keystore keystoreInstance = null;
@@ -25,20 +26,20 @@ public class PersistentKeystore {
 		}
 	}
 
-	protected static void initialize( String propFile, String keyName ) throws Exception {
-		keystoreInstance = new Keystore( propFile, keyName );
+	protected static void initialize( String propFile ) throws Exception {
+		keystoreInstance = new Keystore( propFile, "WikiNewPageFetcher" );
 	}
 
 	protected static Keystore getKeystore() {
 		return keystoreInstance;
 	}
 
-	public static String get( String key ) {
-		return getKeystore().getKey( key );
+	public static String get( String key, String attribute ) {
+		return getKeystore().getKey( key, attribute );
 	}
 
-	public static void put( String key, String value, boolean overwrite ) {
-		getKeystore().put( key, value, overwrite );
+	public static void put( String key, String attribute, String value, boolean overwrite ) {
+		getKeystore().put( key, attribute, value, overwrite );
 	}
 
 }
