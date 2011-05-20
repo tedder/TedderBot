@@ -29,7 +29,9 @@ import java.util.Comparator;
 import java.util.GregorianCalendar;
 import java.util.List;
 import java.util.TimeZone;
+import java.util.logging.FileHandler;
 import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import net.inervo.WMFWiki11;
 import net.inervo.TedderBot.BotFlag;
@@ -46,11 +48,15 @@ public class NewPageSearchApplication {
 	private static final boolean DEBUG_MODE = false;
 	// consider this an "oversearch" period.
 	public static final int PREPEND_SEARCH_DAYS = -7;
+    private static final Logger logger = Logger.getLogger( NewPageSearchApplication.class.getCanonicalName() ); // only one required
+
 
 	public static void main( String[] args ) throws Exception {
 		if ( args.length < 2 ) {
 			print( "need params given in this order: AWS prop file, wiki prop file" );
 		}
+
+		Logger.getLogger(Logger.GLOBAL_LOGGER_NAME).addHandler( new FileHandler("newpagesearch.log") );
 
 		// shutdown hook. Enable early so we don't blow up the cache.
 		System.setProperty( "net.sf.ehcache.enableShutdownHook", "true" );
@@ -173,7 +179,7 @@ public class NewPageSearchApplication {
 	}
 
 	private static void print( String s ) {
-		System.out.println( s );
+		logger.log( Level.INFO, s );
 	}
 
 	public static String getStartTime( String searchName ) throws FileNotFoundException, IllegalArgumentException, IOException {

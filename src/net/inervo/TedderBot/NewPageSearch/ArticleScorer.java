@@ -50,7 +50,6 @@ public class ArticleScorer {
 		int score = 0;
 
 		for ( PageRule.MatchRule rule : ruleset.getPatterns() ) {
-			// print( "pattern: " + rule.getPattern().toString() );
 			score += scoreRule( articleText, rule );
 		}
 
@@ -106,15 +105,9 @@ public class ArticleScorer {
 		Matcher matcher = pattern.matcher( articleText );
 
 		if ( matcher.find() ) {
-			// print("matcher matches.");
 			found = true;
 		}
 
 		return found;
 	}
-
-	protected static void print( String s ) {
-		System.out.println( s );
-	}
-
 }

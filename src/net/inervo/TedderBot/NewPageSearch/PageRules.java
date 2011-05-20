@@ -25,6 +25,8 @@ import java.io.FileNotFoundException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Scanner;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -33,6 +35,7 @@ import net.inervo.Wiki.WikiFetcher;
 public class PageRules {
 	protected WikiFetcher fetcher = null;
 	protected List<PageRule> pages = new ArrayList<PageRule>();
+	private static final Logger logger = Logger.getLogger( PageRules.class.getCanonicalName() );
 
 	public PageRules( WikiFetcher fetcher, String pageName, String ruleOverride ) throws Exception {
 		this.fetcher = fetcher;
@@ -91,8 +94,8 @@ public class PageRules {
 		return pages;
 	}
 
-	private static void print( String s ) {
-		System.out.println( s );
+	protected static void print( String s ) {
+		logger.log( Level.INFO, s );
 	}
 
 }

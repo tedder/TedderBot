@@ -26,10 +26,14 @@ import java.io.IOException;
 import java.net.SocketTimeoutException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.Collections;
+import java.util.GregorianCalendar;
 import java.util.List;
 import java.util.SortedMap;
 import java.util.TreeMap;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import net.inervo.WMFWiki11;
 import net.inervo.WMFWiki11.Revisions;
@@ -44,6 +48,7 @@ public class NewPageFetcher {
 	protected WMFWiki11 wiki = null;
 	protected WikiFetcher fetcher = null;
 	protected PageEditor editor = null;
+	private static final Logger logger = Logger.getLogger( NewPageFetcher.class.getCanonicalName() );
 
 	// protected List<String> errors = new ArrayList<String>();
 
@@ -68,7 +73,7 @@ public class NewPageFetcher {
 		Revisions revs = null;
 
 		ArrayList<String> outputList = new ArrayList<String>();
-		SortedMap<Integer, Integer> outputByDay = new TreeMap<Integer, Integer>();
+		SortedMap<Integer, Integer> outputByDay = getZeroFilledOutputMap( startTimestamp );
 
 		// String start = calendarToTimestamp( new GregorianCalendar( 2011, 04, 01, 0, 01, 03 ) );
 		do {
@@ -85,6 +90,25 @@ public class NewPageFetcher {
 		outputResultsForRule( rule, errorCount, outputList, outputByDay );
 
 		return lastTimestamp;
+	}
+
+	protected TreeMap<Integer, Integer> getZeroFilledOutputMap( String startTimestamp ) {
+		TreeMap<Integer, Integer> ret = new TreeMap<Integer, Integer>();
+		Calendar startCal = WikiHelpers.timestampToCalendar( startTimestamp );
+
+		Calendar endCal = new GregorianCalendar();
+		for ( Calendar today = startCal; today.before( endCal ); today.add( Calendar.HOUR, 24 ) ) {
+			Integer datestamp = Integer.valueOf( WikiHelpers.calendarToDatestamp( today ) );
+			ret.put( datestamp, 0 );
+		}
+
+		// the last one won't get inserted by the above loop, do it manually.
+		{
+			Integer datestamp = Integer.valueOf( WikiHelpers.calendarToDatestamp( endCal ) );
+			ret.put( datestamp, 0 );
+		}
+
+		return ret;
 	}
 
 	protected void addEntryToOutputLists( Revision rev, String searchName, int score, List<String> outputList, SortedMap<Integer, Integer> outputByDay ) {
@@ -135,7 +159,8 @@ public class NewPageFetcher {
 		if ( results.size() > 0 ) {
 			Collections.reverse( results );
 
-			subject.append( ", " + results.size() + " results" );
+			String countLabel = results.size() == 1 ? "article" : "articles";
+			subject.append( ", " + results.size() + " " + countLabel );
 			for ( String line : results ) {
 				searchResultText.append( line );
 				searchResultText.append( "\n" );
@@ -144,7 +169,7 @@ public class NewPageFetcher {
 			searchResultText.append( "There are no current results for this search, sorry." );
 		}
 
-		subject.append( ", daily counts: " + getSparkline( rule.getSearchName(), outputByDay ) );
+		subject.append( ", daily counts: " + getSparkline( outputByDay ) );
 
 		try {
 			editor.edit( rule.getSearchResultPage(), searchResultText.toString(), subject.toString(), false );
@@ -153,7 +178,7 @@ public class NewPageFetcher {
 		}
 	}
 
-	protected String getSparkline( String searchName, SortedMap<Integer, Integer> resultCounts ) {
+	protected String getSparkline( SortedMap<Integer, Integer> resultCounts ) {
 		List<Double> numbers = new ArrayList<Double>();
 
 		if ( resultCounts == null || resultCounts.values() == null ) {
@@ -248,7 +273,7 @@ public class NewPageFetcher {
 	/*** helper functions ***/
 
 	protected static void print( String s ) {
-		System.out.println( s );
+		logger.log( Level.INFO, s );
 	}
 
 	protected static String join( String delim, String... arr ) {
