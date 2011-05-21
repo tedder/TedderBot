@@ -166,8 +166,9 @@ public class NewPageFetcher {
 		// do the archiving
 		String archivedSummary = "";
 		if ( erf.size() > 0 ) {
-			archivedSummary += erf.size() + " ";
+			archivedSummary += " " + erf.size() + " ";
 			archivedSummary += erf.size() == 1 ? "page" : "pages";
+			archivedSummary += " archived";
 			archiveResults( rule.getArchivePage(), erf.values() );
 		}
 
