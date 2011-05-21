@@ -29,6 +29,7 @@ import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.GregorianCalendar;
 import java.util.List;
 import java.util.Map;
@@ -158,7 +159,8 @@ public class NewPageFetcher {
 		// get the existing articles
 		Map<String, String> erf = new ExistingResultsFetcher( fetcher ).getExistingResults( rule.getSearchResultPage() );
 
-		// we have the list of articles already on the page. Archive all of them except the ones we are adding/keeping now.
+		// we have the list of articles already on the page. Archive all of them except the ones we are adding/keeping
+		// now.
 		for ( RuleResultPage result : results ) {
 			erf.remove( result.getRev().getPage() );
 		}
@@ -188,6 +190,9 @@ public class NewPageFetcher {
 				+ rule.getOldArchivePage() + "|AlexNewArtBot archives]] | [[" + rule.getArchivePage() + "|TedderBot archives]]\n\n" );
 
 		if ( results.size() > 0 ) {
+			// sort the list
+			Collections.sort( results, new RuleResultsByDate() );
+			// and reverse it, so we have newest = top
 			Collections.reverse( results );
 
 			String countLabel = results.size() == 1 ? "article" : "articles";
@@ -320,5 +325,15 @@ public class NewPageFetcher {
 		}
 
 		return ret.toString();
+	}
+
+	public static class RuleResultsByDate implements Comparator<RuleResultPage> {
+		public RuleResultsByDate() {
+		};
+
+		@Override
+		public int compare( RuleResultPage arg0, RuleResultPage arg1 ) {
+			return arg0.getRev().getTimestamp().compareTo( arg1.getRev().getTimestamp() );
+		}
 	}
 }
