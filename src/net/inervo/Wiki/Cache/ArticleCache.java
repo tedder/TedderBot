@@ -62,8 +62,12 @@ public class ArticleCache {
 	}
 
 	public String fetchPage( String articleName ) throws IOException {
+		return fetchPage( articleName, false );
+	}
+
+	public String fetchPage( String articleName, boolean disableCache ) throws IOException {
 		// if we have a cached copy, return it.
-		if ( cache.isKeyInCache( articleName ) ) {
+		if ( !disableCache && cache.isKeyInCache( articleName ) ) {
 			return (String) cache.get( articleName ).getValue();
 		}
 

@@ -42,14 +42,14 @@ public class ExistingResultsFetcher {
 	public Map<String, String> getExistingResults( String pageName ) throws Exception {
 		Map<String, String> ret = new HashMap<String, String>();
 
-		String pageContents = fetcher.getPageText( pageName );
+		String pageContents = fetcher.getPageText( pageName, true );
 		Pattern pattern = Pattern.compile( "^\\s*\\*\\s*\\{\\{la\\|(.*?)\\}\\}\\s+by.*$", Pattern.MULTILINE );
 		Matcher matcher = pattern.matcher( pageContents );
 
 		while ( matcher.find() ) {
 			String article = matcher.group( 1 );
 			String line = matcher.group( 0 );
-			ret.put(article, line);
+			ret.put( article, line );
 		}
 
 		return ret;
@@ -67,7 +67,7 @@ public class ExistingResultsFetcher {
 		wiki.login( config.getWikipediaUser(), config.getWikipediaPassword().toCharArray() );
 		WikiFetcher fetcher = new BasicFetcher( wiki );
 
-		ExistingResultsFetcher erf = new ExistingResultsFetcher(fetcher);
+		ExistingResultsFetcher erf = new ExistingResultsFetcher( fetcher );
 		erf.getExistingResults( "User:AlexNewArtBot/LosAngelesSearchResult" );
 	}
 }

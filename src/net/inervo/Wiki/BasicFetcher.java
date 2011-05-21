@@ -31,6 +31,11 @@ public class BasicFetcher implements WikiFetcher {
 	}
 
 	@Override
+	public String getPageText( String articleName, boolean disableCache ) throws Exception {
+		return getPageText( articleName );
+	}
+
+	@Override
 	public String getPageText( String articleName ) throws Exception {
 		return wiki.getPageText( articleName );
 	}

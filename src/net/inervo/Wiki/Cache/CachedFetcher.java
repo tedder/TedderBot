@@ -35,4 +35,9 @@ public class CachedFetcher implements WikiFetcher {
 		return cache.fetchPage( articleName );
 	}
 
+	@Override
+	public String getPageText( String articleName, boolean disableCache ) throws Exception {
+		return cache.fetchPage( articleName, disableCache );
+	}
+
 }
