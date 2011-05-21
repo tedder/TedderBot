@@ -285,7 +285,7 @@ public class PageRule {
 	 * @return
 	 */
 	public String getArchivePage() {
-		return getSearchResultPage() + "/archive";
+		return "User:TedderBot/NewPageSearch/" + searchName + "/archive";
 	}
 
 	/**
@@ -294,7 +294,7 @@ public class PageRule {
 	 * @return
 	 */
 	public String getOldArchivePage() {
-		return "User:AlexNewArtBot/" + searchName + "/archive";
+		return getSearchResultPage() + "/archive";
 	}
 
 	/**
