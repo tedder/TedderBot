@@ -27,9 +27,11 @@ import java.net.SocketTimeoutException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.GregorianCalendar;
 import java.util.List;
+import java.util.Map;
 import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.logging.Level;
@@ -72,18 +74,18 @@ public class NewPageFetcher {
 
 		Revisions revs = null;
 
-		ArrayList<String> outputList = new ArrayList<String>();
+		ArrayList<RuleResultPage> outputList = new ArrayList<RuleResultPage>();
 		SortedMap<Integer, Integer> outputByDay = getZeroFilledOutputMap( startTimestamp );
 
 		// String start = calendarToTimestamp( new GregorianCalendar( 2011, 04, 01, 0, 01, 03 ) );
 		do {
-			print( "about to start fetch of stamp: " + startTimestamp );
+			info( "about to start fetch of stamp: " + startTimestamp );
 			revs = fetch( 5000, startTimestamp );
-			print( "done with fetch of stamp: " + startTimestamp );
+			info( "done with fetch of stamp: " + startTimestamp );
 			lastTimestamp = processRevisions( rule, revs, outputList, outputByDay );
 
 			startTimestamp = revs.getRcStart();
-			print( "rcstart: " + startTimestamp );
+			info( "rcstart: " + startTimestamp );
 		} while ( startTimestamp != null && startTimestamp.length() > 0 );
 
 		int errorCount = writeRuleErrors( rule );
@@ -111,12 +113,7 @@ public class NewPageFetcher {
 		return ret;
 	}
 
-	protected void addEntryToOutputLists( Revision rev, String searchName, int score, List<String> outputList, SortedMap<Integer, Integer> outputByDay ) {
-		String text = getResultOutputLine( rev, score );
-
-		// main outputlist
-		outputList.add( text );
-
+	protected void addEntryToDayList( Revision rev, SortedMap<Integer, Integer> outputByDay ) {
 		// by search by day list
 		Integer datestamp = Integer.valueOf( WikiHelpers.calendarToDatestamp( rev.getTimestamp() ) );
 
@@ -132,13 +129,47 @@ public class NewPageFetcher {
 		}
 	}
 
-	protected String getResultOutputLine( Revision rev, int score ) {
+	protected String getResultOutputLine( RuleResultPage result ) {
+		Revision rev = result.getRev();
 		SimpleDateFormat sdf = new SimpleDateFormat( "HH:mm, dd MMMM yyyy" );
 		return "*{{la|" + rev.getPage() + "}} by {{User|" + rev.getUser() + "}} started at <span class=\"mw-newpages-time\">"
-				+ sdf.format( rev.getTimestamp().getTime() ) + "</span>, score: " + score;
+				+ sdf.format( rev.getTimestamp().getTime() ) + "</span>, score: " + result.getScore();
 	}
 
-	protected void outputResultsForRule( PageRule rule, int searchErrorCount, List<String> results, SortedMap<Integer, Integer> outputByDay ) throws Exception {
+	protected void archiveResults( String archivePage, Collection<String> lines ) throws Exception {
+
+		StringBuilder text = new StringBuilder();
+
+		for ( String line : lines ) {
+			text.append( line );
+			text.append( "\n" );
+		}
+
+		try {
+			editor.edit( archivePage, text.toString(), "archived entries", false, -1 );
+		} catch ( IOException ex ) {
+			info( "failed updating " + archivePage );
+		}
+	}
+
+	protected void outputResultsForRule( PageRule rule, int searchErrorCount, List<RuleResultPage> results, SortedMap<Integer, Integer> outputByDay )
+			throws Exception {
+
+		// get the existing articles
+		Map<String, String> erf = new ExistingResultsFetcher( fetcher ).getExistingResults( rule.getSearchResultPage() );
+
+		// we have the list of articles already on the page. Archive all of them except the ones we are adding/keeping now.
+		for ( RuleResultPage result : results ) {
+			erf.remove( result.getRev().getPage() );
+		}
+
+		// do the archiving
+		String archivedSummary = "";
+		if ( erf.size() > 0 ) {
+			archivedSummary += erf.size() + " ";
+			archivedSummary += erf.size() == 1 ? "page" : "pages";
+			archiveResults( rule.getArchivePage(), erf.values() );
+		}
 
 		StringBuilder searchResultText = new StringBuilder();
 		StringBuilder subject = new StringBuilder( "most recent results" );
@@ -152,15 +183,16 @@ public class NewPageFetcher {
 
 		searchResultText.append( "This list was generated from [[" + rule.getRulePage()
 				+ "|these rules]]. Questions and feedback [[User talk:Tedder|are always welcome]]! "
-				+ "The search is being run manually, but eventually will run ~daily with the most ~7 days of results.\n\n" );
+				+ "The search is being run manually, but eventually will run ~daily with the most recent ~7 days of results.\n\n" + "[["
+				+ rule.getOldArchivePage() + "|AlexNewArtBot archives]] | [[" + rule.getArchivePage() + "|TedderBot archives]]\n\n" );
 
 		if ( results.size() > 0 ) {
 			Collections.reverse( results );
 
 			String countLabel = results.size() == 1 ? "article" : "articles";
 			subject.append( ", " + results.size() + " " + countLabel );
-			for ( String line : results ) {
-				searchResultText.append( line );
+			for ( RuleResultPage result : results ) {
+				searchResultText.append( getResultOutputLine( result ) );
 				searchResultText.append( "\n" );
 			}
 		} else {
@@ -168,11 +200,14 @@ public class NewPageFetcher {
 		}
 
 		subject.append( ", daily counts: " + getSparkline( outputByDay ) );
+		if ( !archivedSummary.isEmpty() ) {
+			subject.append( archivedSummary );
+		}
 
 		try {
 			editor.edit( rule.getSearchResultPage(), searchResultText.toString(), subject.toString(), false );
 		} catch ( IOException ex ) {
-			print( "failed updating " + rule.getSearchResultPage() );
+			info( "failed updating " + rule.getSearchResultPage() );
 		}
 	}
 
@@ -211,14 +246,15 @@ public class NewPageFetcher {
 		try {
 			editor.edit( rule.getErrorPage(), errorBuilder.toString(), "most recent errors", false );
 		} catch ( Exception e ) {
-			print( "failed writing error page: " + rule.getErrorPage() );
+			info( "failed writing error page: " + rule.getErrorPage() );
 			// do nothing, we don't really care if the log fails.
 		}
 
 		return errorcount;
 	}
 
-	protected String processRevisions( PageRule rule, Revisions revs, List<String> outputList, SortedMap<Integer, Integer> outputByDay ) throws Exception {
+	protected String processRevisions( PageRule rule, Revisions revs, List<RuleResultPage> outputList, SortedMap<Integer, Integer> outputByDay )
+			throws Exception {
 		String lastRevisionTime = null;
 
 		for ( Revision rev : revs.getRevisionList() ) {
@@ -233,13 +269,12 @@ public class NewPageFetcher {
 			}
 
 			int score = new ArticleScorer( fetcher, rule, article ).score( pageText );
-			// print( "Article: " + article + ", score: " + score + ", search: " + rule.getSearchName() );
-
 			if ( score >= rule.getThreshold() ) {
-				print( "score is above threshold! Article: " + article + ", score: " + score + ", search: " + rule.getSearchName() + ", time: "
+				info( "score is above threshold! Article: " + article + ", score: " + score + ", search: " + rule.getSearchName() + ", time: "
 						+ WikiHelpers.calendarToTimestamp( rev.getTimestamp() ) );
 
-				addEntryToOutputLists( rev, rule.getSearchName(), score, outputList, outputByDay );
+				outputList.add( new RuleResultPage( rev, score ) );
+				addEntryToDayList( rev, outputByDay );
 			}
 
 			lastRevisionTime = WikiHelpers.calendarToTimestamp( rev.getTimestamp() );
@@ -261,7 +296,7 @@ public class NewPageFetcher {
 		}
 
 		if ( retry != null ) {
-			print( "trying to fetch new pages again. Previous error: " + retry );
+			info( "trying to fetch new pages again. Previous error: " + retry );
 			revs = wiki.newPages( fetchPageCount, Wiki.MAIN_NAMESPACE, 0, rcstart );
 		}
 
@@ -270,7 +305,7 @@ public class NewPageFetcher {
 
 	/*** helper functions ***/
 
-	protected static void print( String s ) {
+	protected static void info( String s ) {
 		logger.log( Level.INFO, s );
 	}
 

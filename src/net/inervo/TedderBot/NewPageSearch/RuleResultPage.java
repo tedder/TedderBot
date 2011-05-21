@@ -1,4 +1,4 @@
-package net.inervo.Wiki;
+package net.inervo.TedderBot.NewPageSearch;
 
 /*
  * Copyright (c) 2011, Ted Timmons, Inervo Networks All rights reserved.
@@ -21,45 +21,22 @@ package net.inervo.Wiki;
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-import java.io.IOException;
-import java.util.logging.Level;
-import java.util.logging.Logger;
+import org.wikipedia.Wiki.Revision;
 
-import net.inervo.WMFWiki11;
+public class RuleResultPage {
+	private Revision rev;
+	private int score;
 
-public class RetryEditor implements PageEditor {
-	protected WMFWiki11 wiki;
-	private static final Logger logger = Logger.getLogger( RetryEditor.class.getCanonicalName() );
-
-	public RetryEditor( WMFWiki11 wiki ) {
-		this.wiki = wiki;
+	public RuleResultPage( Revision rev, int score ) {
+		this.rev = rev;
+		this.score = score;
 	}
 
-	public void edit( String title, String text, String summary, boolean minor ) throws Exception {
-		edit( title, text, summary, minor, -2 );
+	public Revision getRev() {
+		return rev;
 	}
 
-	public void edit( String title, String text, String summary, boolean minor, int section ) throws Exception {
-
-		boolean success = false;
-		for ( int i = 0; success == false && i < 5; ++i ) {
-			try {
-				wiki.edit( title, text, summary, minor, section );
-				success = true;
-			} catch ( IOException ex ) {
-				// retry once.
-				warn( "Sleeping, couldn't edit page: " + title );
-				Thread.sleep( 1000 );
-				warn( "Done sleeping: " + title );
-			}
-		}
-
-		if ( success == false ) {
-			throw new IOException( "failed to update page: " + title );
-		}
-	}
-
-	protected void warn( String str ) {
-		logger.log( Level.WARNING, str );
+	public int getScore() {
+		return score;
 	}
 }

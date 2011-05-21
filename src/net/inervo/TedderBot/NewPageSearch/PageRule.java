@@ -280,6 +280,24 @@ public class PageRule {
 	}
 
 	/**
+	 * where we are placing archives for this configuration, such as 'User:TedderBot/NewPageSearch/Oregon/errors'
+	 * 
+	 * @return
+	 */
+	public String getArchivePage() {
+		return "User:TedderBot/NewPageSearch/" + searchName + "/archive";
+	}
+
+	/**
+	 * where That Other Bot placed archives, such as 'User:AlexNewArtBot/Oregon/archive'
+	 * 
+	 * @return
+	 */
+	public String getOldArchivePage() {
+		return "User:AlexNewArtBot/" + searchName + "/archive";
+	}
+
+	/**
 	 * where we are putting search results, such as 'User:AlexNewArtBot/OregonSearchResult'
 	 * 
 	 * @return
