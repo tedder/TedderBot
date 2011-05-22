@@ -48,15 +48,14 @@ public class NewPageSearchApplication {
 	private static final boolean DEBUG_MODE = false;
 	// consider this an "oversearch" period.
 	public static final int PREPEND_SEARCH_DAYS = -7;
-    private static final Logger logger = Logger.getLogger( NewPageSearchApplication.class.getCanonicalName() ); // only one required
-
+	private static final Logger logger = Logger.getLogger( NewPageSearchApplication.class.getCanonicalName() ); // only
 
 	public static void main( String[] args ) throws Exception {
 		if ( args.length < 2 ) {
 			print( "need params given in this order: AWS prop file, wiki prop file" );
 		}
 
-		Logger.getLogger(Logger.GLOBAL_LOGGER_NAME).addHandler( new FileHandler("newpagesearch.log") );
+		Logger.getLogger( Logger.GLOBAL_LOGGER_NAME ).addHandler( new FileHandler( "newpagesearch.log" ) );
 
 		// shutdown hook. Enable early so we don't blow up the cache.
 		System.setProperty( "net.sf.ehcache.enableShutdownHook", "true" );
@@ -109,13 +108,13 @@ public class NewPageSearchApplication {
 
 				// store it before we run. That way we'll begin at n+1 even if this one frequently fails.
 				PersistentKeystore.put( PersistentKeystore.DEFAULT_KEY, PersistentKeystore.LAST_PROCESSED, rule.getSearchName(), true );
-				
+
 				String startTime = getStartTime( searchName );
-				if ( ! isDeltaGreaterThanOneDay(WikiHelpers.timestampToCalendar( startTime ), new GregorianCalendar() ) ) {
-					print(" rule has been run recently, skipping.");
+				if ( !isDeltaGreaterThanOneDay( WikiHelpers.timestampToCalendar( startTime ), new GregorianCalendar() ) ) {
+					print( "rule " + rule.getSearchName() + " has been run recently, skipping." );
 					continue;
 				}
-				
+
 				String endTime = npp.runFetcher( startTime, rule );
 				storeStartTime( searchName, endTime );
 
