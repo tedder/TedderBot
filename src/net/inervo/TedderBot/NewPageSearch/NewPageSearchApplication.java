@@ -186,6 +186,10 @@ public class NewPageSearchApplication {
 
 		if ( startTime == null || startTime.isEmpty() ) {
 			startTime = getDefaultStartTime();
+		} else {
+			Calendar start = WikiHelpers.timestampToCalendar( startTime );
+			start.add( Calendar.DAY_OF_MONTH, PREPEND_SEARCH_DAYS );
+			startTime = WikiHelpers.calendarToTimestamp( start );
 		}
 
 		return startTime;
