@@ -54,7 +54,7 @@ public class PageRule {
 
 		Pattern rexLine = Pattern.compile( "^\\s*([\\-\\d]*)\\s*\\/(.*?)\\/\\s*(\\,\\s*.*\\s*)?$" );
 		Pattern defaultScorePattern = Pattern.compile( "^\\s*@@(\\d+)@@\\s*$" );
-		Pattern categoryPattern = Pattern.compile( "^\\s*(\\d*)\\s*\\$\\$(.*)\\$\\$\\s*$" );
+		Pattern templatePattern = Pattern.compile( "^\\s*(\\d*)\\s*\\$\\$(.*)\\$\\$\\s*$" );
 
 		String input = null;
 		try {
@@ -70,7 +70,7 @@ public class PageRule {
 
 			Matcher rexMatcher = rexLine.matcher( line );
 			Matcher scoreMatcher = defaultScorePattern.matcher( line );
-			Matcher categoryMatcher = categoryPattern.matcher( line );
+			Matcher templateMatcher = templatePattern.matcher( line );
 
 			MatchRule rule = new MatchRule();
 
@@ -102,15 +102,16 @@ public class PageRule {
 			} else if ( scoreMatcher.matches() ) {
 				String score = scoreMatcher.group( 1 );
 				threshold = Integer.parseInt( score );
-			} else if ( categoryMatcher.matches() ) {
+			} else if ( templateMatcher.matches() ) {
 				// print( "category: " + line + " count: " + categoryMatcher.groupCount() );
-				String scoreString = categoryMatcher.group( 1 );
+				String scoreString = templateMatcher.group( 1 );
 				rule.score = DEFAULT_SCORE;
 				if ( scoreString.length() > 0 ) {
 					rule.score = Integer.parseInt( scoreString );
 				}
 
-				safeSetPattern( rule, categoryMatcher.group( 2 ) );
+				String actualPattern = "\\{\\{" + templateMatcher.group( 2 ) + ".*?\\}\\}";
+				safeSetPattern( rule, actualPattern );
 
 				if ( rule.isValidPattern() ) {
 					patterns.add( rule );
