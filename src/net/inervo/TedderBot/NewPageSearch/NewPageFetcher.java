@@ -31,8 +31,10 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.GregorianCalendar;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.logging.Level;
@@ -40,6 +42,7 @@ import java.util.logging.Logger;
 
 import net.inervo.WMFWiki11;
 import net.inervo.WMFWiki11.Revisions;
+import net.inervo.TedderBot.NewPageSearch.ArticleScorer.ScoreResults;
 import net.inervo.Wiki.PageEditor;
 import net.inervo.Wiki.WikiFetcher;
 import net.inervo.Wiki.WikiHelpers;
@@ -76,6 +79,8 @@ public class NewPageFetcher {
 		Revisions revs = null;
 
 		ArrayList<RuleResultPage> outputList = new ArrayList<RuleResultPage>();
+		Map<String, List<ScoreResults>> scoreNotes = new HashMap<String, List<ScoreResults>>();
+
 		SortedMap<Integer, Integer> outputByDay = getZeroFilledOutputMap( startTimestamp );
 
 		// String start = calendarToTimestamp( new GregorianCalendar( 2011, 04, 01, 0, 01, 03 ) );
@@ -83,14 +88,14 @@ public class NewPageFetcher {
 			info( "about to start fetch of stamp: " + startTimestamp );
 			revs = fetch( 5000, startTimestamp );
 			info( "done with fetch of stamp: " + startTimestamp );
-			lastTimestamp = processRevisions( rule, revs, outputList, outputByDay );
+			lastTimestamp = processRevisions( rule, revs, outputList, scoreNotes, outputByDay );
 
 			startTimestamp = revs.getRcStart();
 			info( "rcstart: " + startTimestamp );
 		} while ( startTimestamp != null && startTimestamp.length() > 0 );
 
-		int errorCount = writeRuleErrors( rule );
-		outputResultsForRule( rule, errorCount, outputList, outputByDay );
+		int errorCount = writeRuleErrors( rule, scoreNotes );
+		outputResultsForRule( rule, errorCount, outputList, scoreNotes, outputByDay );
 
 		return lastTimestamp;
 	}
@@ -153,8 +158,8 @@ public class NewPageFetcher {
 		}
 	}
 
-	protected void outputResultsForRule( PageRule rule, int searchErrorCount, List<RuleResultPage> results, SortedMap<Integer, Integer> outputByDay )
-			throws Exception {
+	protected void outputResultsForRule( PageRule rule, int searchErrorCount, List<RuleResultPage> results, Map<String, List<ScoreResults>> scoreNotes,
+			SortedMap<Integer, Integer> outputByDay ) throws Exception {
 
 		// get the existing articles
 		Map<String, String> erf = new ExistingResultsFetcher( fetcher ).getExistingResults( rule.getSearchResultPage() );
@@ -187,7 +192,8 @@ public class NewPageFetcher {
 		searchResultText.append( "This list was generated from [[" + rule.getRulePage()
 				+ "|these rules]]. Questions and feedback [[User talk:Tedder|are always welcome]]! "
 				+ "The search is being run manually, but eventually will run ~daily with the most recent ~7 days of results.\n\n" + "[["
-				+ rule.getOldArchivePage() + "|AlexNewArtBot archives]] | [[" + rule.getArchivePage() + "|TedderBot archives]]\n\n" );
+				+ rule.getOldArchivePage() + "|AlexNewArtBot archives]] | [[" + rule.getArchivePage() + "|TedderBot archives]] | [[" + rule.getRulePage()
+				+ "|Rules]] | [[" + rule.getErrorPage() + "|Match log and errors]]\n\n" );
 
 		if ( results.size() > 0 ) {
 			// sort the list
@@ -230,7 +236,7 @@ public class NewPageFetcher {
 		return new Sparkline().getSparkline( numbers );
 	}
 
-	protected int writeRuleErrors( PageRule rule ) {
+	protected int writeRuleErrors( PageRule rule, Map<String, List<ScoreResults>> scoreNotes ) {
 		int patterncount = rule.getPatterns().size();
 
 		StringBuilder errorBuilder = new StringBuilder( patterncount + " search patterns processed for this rule.\n\n" );
@@ -249,8 +255,20 @@ public class NewPageFetcher {
 			errorBuilder.append( "There were no errors. Hooray!\n" );
 		}
 
+		errorBuilder.append( "==Scoring notes==\n\n" );
+
+		for ( Entry<String, List<ScoreResults>> noteEntry : scoreNotes.entrySet() ) {
+			String article = noteEntry.getKey();
+			List<ScoreResults> notes = noteEntry.getValue();
+			errorBuilder.append( "*{{la|" + article + "}}\n" );
+			for ( ScoreResults note : notes ) {
+				errorBuilder.append( "** Score: " + note.getScore() + ", pattern: <nowiki>" + note.getRule().getPattern().pattern() + "</nowiki>\n" );
+			}
+
+		}
+
 		try {
-			editor.edit( rule.getErrorPage(), errorBuilder.toString(), "most recent errors", false );
+			editor.edit( rule.getErrorPage(), errorBuilder.toString(), "most recent errors and scoring", false );
 		} catch ( Exception e ) {
 			info( "failed writing error page: " + rule.getErrorPage() );
 			// do nothing, we don't really care if the log fails.
@@ -259,8 +277,8 @@ public class NewPageFetcher {
 		return errorcount;
 	}
 
-	protected String processRevisions( PageRule rule, Revisions revs, List<RuleResultPage> outputList, SortedMap<Integer, Integer> outputByDay )
-			throws Exception {
+	protected String processRevisions( PageRule rule, Revisions revs, List<RuleResultPage> outputList, Map<String, List<ScoreResults>> scoreNotes,
+			SortedMap<Integer, Integer> outputByDay ) throws Exception {
 		String lastRevisionTime = null;
 
 		for ( Revision rev : revs.getRevisionList() ) {
@@ -274,12 +292,14 @@ public class NewPageFetcher {
 				continue;
 			}
 
-			int score = new ArticleScorer( fetcher, rule, article ).score( pageText );
+			ArticleScorer as = new ArticleScorer( fetcher, rule, article );
+			int score = as.score( pageText );
 			if ( score >= rule.getThreshold() ) {
 				info( "score is above threshold! Article: " + article + ", score: " + score + ", search: " + rule.getSearchName() + ", time: "
 						+ WikiHelpers.calendarToTimestamp( rev.getTimestamp() ) );
 
 				outputList.add( new RuleResultPage( rev, score ) );
+				scoreNotes.put( article, as.getScoreNotes() );
 				addEntryToDayList( rev, outputByDay );
 			}
 

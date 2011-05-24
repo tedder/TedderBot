@@ -288,7 +288,7 @@ public class PageRule {
 	public String getArchivePage() {
 		return "User:TedderBot/NewPageSearch/" + searchName + "/archive";
 	}
-
+	
 	/**
 	 * where That Other Bot placed archives, such as 'User:AlexNewArtBot/Oregon/archive'
 	 * 

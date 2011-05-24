@@ -21,6 +21,8 @@ package net.inervo.TedderBot.NewPageSearch;
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -30,11 +32,14 @@ public class ArticleScorer {
 	private PageRule ruleset;
 	private String article;
 	private WikiFetcher fetcher;
+	private List<ScoreResults> notes;
 
 	public ArticleScorer( WikiFetcher fetcher, PageRule ruleset, String article ) {
 		this.ruleset = ruleset;
 		this.article = article;
 		this.fetcher = fetcher;
+
+		notes = new ArrayList<ScoreResults>();
 	}
 
 	protected String fetch() throws Exception {
@@ -50,10 +55,24 @@ public class ArticleScorer {
 		int score = 0;
 
 		for ( PageRule.MatchRule rule : ruleset.getPatterns() ) {
-			score += scoreRule( articleText, rule );
+			int ruleScore = scoreRule( articleText, rule );
+			score += ruleScore;
+			noteScore( ruleScore, rule );
 		}
 
 		return score;
+	}
+
+	protected void noteScore( int score, PageRule.MatchRule rule ) {
+		if ( score == 0 ) {
+			return;
+		}
+
+		notes.add( new ScoreResults( score, rule ) );
+	}
+
+	public List<ScoreResults> getScoreNotes() {
+		return notes;
 	}
 
 	protected int scoreRule( String articleText, PageRule.MatchRule rule ) {
@@ -109,5 +128,23 @@ public class ArticleScorer {
 		}
 
 		return found;
+	}
+
+	public static class ScoreResults {
+		protected int score;
+		protected PageRule.MatchRule rule;
+
+		public ScoreResults( int score, PageRule.MatchRule rule ) {
+			this.score = score;
+			this.rule = rule;
+		}
+
+		public int getScore() {
+			return score;
+		}
+
+		public PageRule.MatchRule getRule() {
+			return rule;
+		}
 	}
 }

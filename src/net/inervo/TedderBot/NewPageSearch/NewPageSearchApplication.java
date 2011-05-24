@@ -45,7 +45,7 @@ import net.inervo.Wiki.Cache.CachedFetcher;
 
 public class NewPageSearchApplication {
 	private static final long DAY_IN_MILLISECONDS = 86400000;
-	private static final boolean DEBUG_MODE = false;
+	private static boolean DEBUG_MODE = false;
 	// consider this an "oversearch" period.
 	public static final int PREPEND_SEARCH_DAYS = -7;
 	private static final Logger logger = Logger.getLogger( NewPageSearchApplication.class.getCanonicalName() ); // only
