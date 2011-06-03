@@ -44,7 +44,7 @@ public class PageRules {
 	}
 
 	protected void parseMaster( String masterPage, String ruleOverride ) throws Exception {
-		String input = fetcher.getPageText( masterPage );
+		String input = fetcher.getPageText( masterPage, true );
 		Scanner s = new Scanner( input ).useDelimiter( "\\n" );
 
 		// process each line into a page.
