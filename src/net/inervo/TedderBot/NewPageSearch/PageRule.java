@@ -58,7 +58,7 @@ public class PageRule {
 
 		String input = null;
 		try {
-			input = fetcher.getPageText( pageName );
+			input = fetcher.getPageText( pageName, true );
 		} catch ( Exception ex ) {
 			throw new Exception( "failed fetching rule at " + pageName + ". Original exception: " + ex.getMessage() );
 		}
@@ -167,18 +167,11 @@ public class PageRule {
 		if ( inhibitors == null || inhibitors.length() == 0 ) {
 			return;
 		}
-		// List<Pattern> list = new ArrayList<Pattern>();
-
-		while ( true ) {
-			Pattern inhibitorPattern = Pattern.compile( "^\\,\\s*\\/(.*?)\\/\\s*$" );
-			Matcher matcher = inhibitorPattern.matcher( inhibitors );
-			if ( !matcher.matches() ) {
-				break;
-			}
-
+		Pattern inhibitorPattern = Pattern.compile( "\\,?\\s*\\/(.+?)\\/" );
+		Matcher matcher = inhibitorPattern.matcher( inhibitors );
+		
+		while ( matcher.find() ) {
 			safeAddInhibitor( rule, matcher.group( 1 ) );
-
-			inhibitors = matcher.replaceFirst( "" );
 		}
 	}
 
@@ -223,6 +216,14 @@ public class PageRule {
 
 		public List<Pattern> getIgnore() {
 			return ignore;
+		}
+
+		public int getIgnoreCount() {
+			if ( ignore == null ) {
+				return 0;
+			}
+
+			return ignore.size();
 		}
 
 		public Pattern getPattern() {
@@ -288,7 +289,7 @@ public class PageRule {
 	public String getArchivePage() {
 		return "User:TedderBot/NewPageSearch/" + searchName + "/archive";
 	}
-	
+
 	/**
 	 * where That Other Bot placed archives, such as 'User:AlexNewArtBot/Oregon/archive'
 	 * 
