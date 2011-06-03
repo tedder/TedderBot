@@ -49,6 +49,7 @@ public class NewPageSearchApplication {
 	// consider this an "oversearch" period.
 	public static final int PREPEND_SEARCH_DAYS = -7;
 	private static final Logger logger = Logger.getLogger( NewPageSearchApplication.class.getCanonicalName() ); // only
+	private static final String DEBUG_SEARCH = "Oregon";
 
 	public static void main( String[] args ) throws Exception {
 		if ( args.length < 2 ) {
@@ -76,7 +77,7 @@ public class NewPageSearchApplication {
 			print( "db lag (seconds): " + wiki.getCurrentDatabaseLag() );
 			BotFlag.check( wiki );
 
-			String debugOverride = DEBUG_MODE ? "Oregon" : null;
+			String debugOverride = DEBUG_MODE ? DEBUG_SEARCH : null;
 
 			ac = new ArticleCache( wiki );
 			WikiFetcher fetcher = new CachedFetcher( ac );
