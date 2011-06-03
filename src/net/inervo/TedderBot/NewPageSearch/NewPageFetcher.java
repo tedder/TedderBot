@@ -262,7 +262,8 @@ public class NewPageFetcher {
 			List<ScoreResults> notes = noteEntry.getValue();
 			errorBuilder.append( "*{{la|" + article + "}}\n" );
 			for ( ScoreResults note : notes ) {
-				errorBuilder.append( "** Score: " + note.getScore() + ", pattern: <nowiki>" + note.getRule().getPattern().pattern() + "</nowiki>\n" );
+				errorBuilder.append( "** Score: " + note.getScore() + ", pattern: <nowiki>" + note.getRule().getPattern().pattern()
+						+ "</nowiki>, inhibitor count: " + note.getRule().getIgnoreCount() + "\n" );
 			}
 
 		}
