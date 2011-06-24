@@ -66,13 +66,15 @@ public class NewPageFetcher {
 	 * @param rule
 	 * @param debug
 	 */
-	public NewPageFetcher( WMFWiki11 wiki, WikiFetcher fetcher, PageEditor editor ) {
+	public NewPageFetcher( WMFWiki11 wiki, WikiFetcher fetcher, PageEditor editor )
+	{
 		this.wiki = wiki;
 		this.fetcher = fetcher;
 		this.editor = editor;
 	}
 
-	public String runFetcher( String startTimestamp, PageRule rule ) throws Exception {
+	public String runFetcher( String startTimestamp, PageRule rule ) throws Exception
+	{
 		// String debugOverride = debug ? "Oregon" : null;
 		String lastTimestamp = null;
 
@@ -100,7 +102,8 @@ public class NewPageFetcher {
 		return lastTimestamp;
 	}
 
-	protected TreeMap<Integer, Integer> getZeroFilledOutputMap( String startTimestamp ) {
+	protected TreeMap<Integer, Integer> getZeroFilledOutputMap( String startTimestamp )
+	{
 		TreeMap<Integer, Integer> ret = new TreeMap<Integer, Integer>();
 		Calendar startCal = WikiHelpers.timestampToCalendar( startTimestamp );
 
@@ -119,7 +122,8 @@ public class NewPageFetcher {
 		return ret;
 	}
 
-	protected void addEntryToDayList( Revision rev, SortedMap<Integer, Integer> outputByDay ) {
+	protected void addEntryToDayList( Revision rev, SortedMap<Integer, Integer> outputByDay )
+	{
 		// by search by day list
 		Integer datestamp = Integer.valueOf( WikiHelpers.calendarToDatestamp( rev.getTimestamp() ) );
 
@@ -135,14 +139,16 @@ public class NewPageFetcher {
 		}
 	}
 
-	protected String getResultOutputLine( RuleResultPage result ) {
+	protected String getResultOutputLine( RuleResultPage result )
+	{
 		Revision rev = result.getRev();
 		SimpleDateFormat sdf = new SimpleDateFormat( "HH:mm, dd MMMM yyyy" );
 		return "*{{la|" + rev.getPage() + "}} by {{User|" + rev.getUser() + "}} started at <span class=\"mw-newpages-time\">"
-				+ sdf.format( rev.getTimestamp().getTime() ) + "</span>, score: " + result.getScore();
+			+ sdf.format( rev.getTimestamp().getTime() ) + "</span>, score: " + result.getScore();
 	}
 
-	protected void archiveResults( String archivePage, Collection<String> lines ) throws Exception {
+	protected void archiveResults( String archivePage, Collection<String> lines ) throws Exception
+	{
 
 		StringBuilder text = new StringBuilder();
 
@@ -158,8 +164,9 @@ public class NewPageFetcher {
 		}
 	}
 
-	protected void outputResultsForRule( PageRule rule, int searchErrorCount, List<RuleResultPage> results, Map<String, List<ScoreResults>> scoreNotes,
-			SortedMap<Integer, Integer> outputByDay ) throws Exception {
+	protected void outputResultsForRule( PageRule rule, int searchErrorCount, List<RuleResultPage> results,
+		Map<String, List<ScoreResults>> scoreNotes, SortedMap<Integer, Integer> outputByDay ) throws Exception
+	{
 
 		// get the existing articles
 		Map<String, String> erf = new ExistingResultsFetcher( fetcher ).getExistingResults( rule.getSearchResultPage() );
@@ -186,14 +193,14 @@ public class NewPageFetcher {
 			String errorLabel = searchErrorCount == 0 ? "error" : "errors";
 			subject.append( ", " + searchErrorCount + " [[" + rule.getErrorPage() + "|" + errorLabel + "]]" );
 			searchResultText.append( "'''There were [[" + rule.getErrorPage() + "|" + searchErrorCount + " " + errorLabel
-					+ " encountered]] while parsing the [[" + rule.getRulePage() + "|" + "rules for this search]].''' " );
+				+ " encountered]] while parsing the [[" + rule.getRulePage() + "|" + "rules for this search]].''' " );
 		}
 
-		searchResultText.append( "This list was generated from [[" + rule.getRulePage()
-				+ "|these rules]]. Questions and feedback [[User talk:Tedder|are always welcome]]! "
-				+ "The search is being run manually, but eventually will run ~daily with the most recent ~7 days of results.\n\n" + "[["
-				+ rule.getOldArchivePage() + "|AlexNewArtBot archives]] | [[" + rule.getArchivePage() + "|TedderBot archives]] | [[" + rule.getRulePage()
-				+ "|Rules]] | [[" + rule.getErrorPage() + "|Match log and errors]]\n\n" );
+		searchResultText.append( "This list was generated from [[" + rule.getRulePage() + "|these rules]] ({{oldid|1=" + rule.getRulePage()
+			+ "|2=" + rule.getRevisionID() + "|3=ruleset version}}). Questions and feedback [[User talk:Tedder|are always welcome]]! "
+			+ "The search is being run manually, but eventually will run ~daily with the most recent ~7 days of results.\n\n" + "[["
+			+ rule.getOldArchivePage() + "|AlexNewArtBot archives]] | [[" + rule.getArchivePage() + "|TedderBot archives]] | [["
+			+ rule.getRulePage() + "|Rules]] | [[" + rule.getErrorPage() + "|Match log and errors]]\n\n" );
 
 		if ( results.size() > 0 ) {
 			// sort the list
@@ -223,7 +230,8 @@ public class NewPageFetcher {
 		}
 	}
 
-	protected String getSparkline( SortedMap<Integer, Integer> resultCounts ) {
+	protected String getSparkline( SortedMap<Integer, Integer> resultCounts )
+	{
 		List<Double> numbers = new ArrayList<Double>();
 
 		if ( resultCounts == null || resultCounts.values() == null ) {
@@ -236,8 +244,10 @@ public class NewPageFetcher {
 		return new Sparkline().getSparkline( numbers );
 	}
 
-	protected int writeRuleErrors( PageRule rule, Map<String, List<ScoreResults>> scoreNotes ) {
+	protected int writeRuleErrors( PageRule rule, Map<String, List<ScoreResults>> scoreNotes )
+	{
 		int patterncount = rule.getPatterns().size();
+		// rule.
 
 		StringBuilder errorBuilder = new StringBuilder( patterncount + " search patterns processed for this rule.\n\n" );
 		errorBuilder.append( "==Errors==\n" );
@@ -263,7 +273,7 @@ public class NewPageFetcher {
 			errorBuilder.append( "*{{la|" + article + "}}\n" );
 			for ( ScoreResults note : notes ) {
 				errorBuilder.append( "** Score: " + note.getScore() + ", pattern: <nowiki>" + note.getRule().getPattern().pattern()
-						+ "</nowiki>, inhibitor count: " + note.getRule().getIgnoreCount() + "\n" );
+					+ "</nowiki>, inhibitor count: " + note.getRule().getIgnoreCount() + "\n" );
 			}
 
 		}
@@ -278,8 +288,9 @@ public class NewPageFetcher {
 		return errorcount;
 	}
 
-	protected String processRevisions( PageRule rule, Revisions revs, List<RuleResultPage> outputList, Map<String, List<ScoreResults>> scoreNotes,
-			SortedMap<Integer, Integer> outputByDay ) throws Exception {
+	protected String processRevisions( PageRule rule, Revisions revs, List<RuleResultPage> outputList,
+		Map<String, List<ScoreResults>> scoreNotes, SortedMap<Integer, Integer> outputByDay ) throws Exception
+	{
 		String lastRevisionTime = null;
 
 		for ( Revision rev : revs.getRevisionList() ) {
@@ -296,8 +307,8 @@ public class NewPageFetcher {
 			ArticleScorer as = new ArticleScorer( fetcher, rule, article );
 			int score = as.score( pageText );
 			if ( score >= rule.getThreshold() ) {
-				info( "score is above threshold! Article: " + article + ", score: " + score + ", search: " + rule.getSearchName() + ", time: "
-						+ WikiHelpers.calendarToTimestamp( rev.getTimestamp() ) );
+				info( "score is above threshold! Article: " + article + ", score: " + score + ", search: " + rule.getSearchName()
+					+ ", time: " + WikiHelpers.calendarToTimestamp( rev.getTimestamp() ) );
 
 				outputList.add( new RuleResultPage( rev, score ) );
 				scoreNotes.put( article, as.getScoreNotes() );
@@ -310,7 +321,8 @@ public class NewPageFetcher {
 		return lastRevisionTime;
 	}
 
-	public Revisions fetch( int fetchPageCount, String rcstart ) throws Exception {
+	public Revisions fetch( int fetchPageCount, String rcstart ) throws Exception
+	{
 		Revisions revs = null;
 		String retry = null;
 
@@ -332,11 +344,13 @@ public class NewPageFetcher {
 
 	/*** helper functions ***/
 
-	protected static void info( String s ) {
+	protected static void info( String s )
+	{
 		logger.log( Level.INFO, s );
 	}
 
-	protected static String join( String delim, String... arr ) {
+	protected static String join( String delim, String... arr )
+	{
 		StringBuilder ret = new StringBuilder();
 		for ( String row : arr ) {
 			if ( ret.length() != 0 ) {
@@ -349,11 +363,13 @@ public class NewPageFetcher {
 	}
 
 	public static class RuleResultsByDate implements Comparator<RuleResultPage> {
-		public RuleResultsByDate() {
+		public RuleResultsByDate()
+		{
 		};
 
 		@Override
-		public int compare( RuleResultPage arg0, RuleResultPage arg1 ) {
+		public int compare( RuleResultPage arg0, RuleResultPage arg1 )
+		{
 			return arg0.getRev().getTimestamp().compareTo( arg1.getRev().getTimestamp() );
 		}
 	}

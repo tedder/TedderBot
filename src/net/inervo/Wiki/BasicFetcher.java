@@ -22,22 +22,32 @@ package net.inervo.Wiki;
  */
 
 import net.inervo.WMFWiki11;
+import net.inervo.WMFWiki11RevisionText;
 
 public class BasicFetcher implements WikiFetcher {
 	private WMFWiki11 wiki;
 
-	public BasicFetcher( WMFWiki11 wiki ) {
+	public BasicFetcher( WMFWiki11 wiki )
+	{
 		this.wiki = wiki;
 	}
 
 	@Override
-	public String getPageText( String articleName, boolean disableCache ) throws Exception {
+	public String getPageText( String articleName, boolean disableCache ) throws Exception
+	{
 		return getPageText( articleName );
 	}
 
 	@Override
-	public String getPageText( String articleName ) throws Exception {
+	public String getPageText( String articleName ) throws Exception
+	{
 		return wiki.getPageText( articleName );
+	}
+
+	@Override
+	public WMFWiki11RevisionText getPage( String articleName, boolean disableCache ) throws Exception
+	{
+		return wiki.getTopRevision( articleName );
 	}
 
 }

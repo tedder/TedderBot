@@ -22,6 +22,7 @@ package net.inervo.TedderBot;
  */
 
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.Properties;
@@ -36,15 +37,18 @@ public class Configuration {
 		loadConfigurationFile();
 	}
 
-	public String getWikipediaUser() {
+	public String getWikipediaUser()
+	{
 		return configFile.getProperty( "username" );
 	}
 
-	public String getWikipediaPassword() {
+	public String getWikipediaPassword()
+	{
 		return configFile.getProperty( "password" );
 	}
 
-	private void loadConfigurationFile() throws IOException {
+	private void loadConfigurationFile() throws IOException
+	{
 		// configFile.load(
 		// this.getClass().getClassLoader().getResourceAsStream(
 		// "/wiki.properties" ) );
@@ -55,6 +59,5 @@ public class Configuration {
 		// Properties properties = loadProps(emsInitResource.getInputStream());
 
 		configFile.load( new FileReader( new File( filename ) ) );
-
 	}
 }

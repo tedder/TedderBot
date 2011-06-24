@@ -51,7 +51,8 @@ public class NewPageSearchApplication {
 	private static final Logger logger = Logger.getLogger( NewPageSearchApplication.class.getCanonicalName() ); // only
 	private static final String DEBUG_SEARCH = "Oregon";
 
-	public static void main( String[] args ) throws Exception {
+	public static void main( String[] args ) throws Exception
+	{
 		if ( args.length < 2 ) {
 			print( "need params given in this order: AWS prop file, wiki prop file" );
 		}
@@ -64,9 +65,17 @@ public class NewPageSearchApplication {
 		print( "hello world!" );
 		ArticleCache ac = null;
 
+		String amazonProps = "AwsCredentials.properties";
+		String wikiProps = "wiki.properties";
+
+		if ( args.length >= 2 ) {
+			amazonProps = args[0];
+			wikiProps = args[1];
+		}
+
 		try {
-			PersistentKeystore.initialize( args[0] );
-			Configuration config = new Configuration( args[1] );
+			PersistentKeystore.initialize( amazonProps );
+			Configuration config = new Configuration( wikiProps );
 
 			WMFWiki11 wiki = new WMFWiki11( "en.wikipedia.org" );
 			wiki.setMaxLag( 15 );
@@ -104,7 +113,7 @@ public class NewPageSearchApplication {
 				String searchName = rule.getSearchName();
 
 				print( "processing rule " + searchName + ", current time: "
-						+ WikiHelpers.calendarToTimestamp( new GregorianCalendar( TimeZone.getTimeZone( "America/Los_Angeles" ) ) ) );
+					+ WikiHelpers.calendarToTimestamp( new GregorianCalendar( TimeZone.getTimeZone( "America/Los_Angeles" ) ) ) );
 				long startClock = System.currentTimeMillis();
 
 				// store it before we run. That way we'll begin at n+1 even if this one frequently fails.
@@ -134,12 +143,14 @@ public class NewPageSearchApplication {
 	public static class SortRulesByRuleNameAlphaOnPivot implements Comparator<PageRule> {
 		private String pivot;
 
-		public SortRulesByRuleNameAlphaOnPivot( String pivot ) {
+		public SortRulesByRuleNameAlphaOnPivot( String pivot )
+		{
 			this.pivot = pivot.toLowerCase();
 		};
 
 		@Override
-		public int compare( PageRule arg0, PageRule arg1 ) {
+		public int compare( PageRule arg0, PageRule arg1 )
+		{
 			int zeroComp = pivot.compareTo( arg0.getSearchName().toLowerCase() );
 			int oneComp = pivot.compareTo( arg1.getSearchName().toLowerCase() );
 			int directComp = arg0.getSearchName().toLowerCase().compareTo( arg1.getSearchName().toLowerCase() );
@@ -152,7 +163,8 @@ public class NewPageSearchApplication {
 		}
 	}
 
-	public static boolean isDeltaGreaterThanOneDay( Calendar obj1, Calendar obj2 ) {
+	public static boolean isDeltaGreaterThanOneDay( Calendar obj1, Calendar obj2 )
+	{
 		long delta = Math.abs( obj1.getTimeInMillis() - obj2.getTimeInMillis() );
 		if ( delta > DAY_IN_MILLISECONDS ) {
 			return true;
@@ -160,7 +172,8 @@ public class NewPageSearchApplication {
 		return false;
 	}
 
-	public static String deltaMillisecondsToString( long delta ) {
+	public static String deltaMillisecondsToString( long delta )
+	{
 		long deltaSeconds = ( delta / 1000 ) % 60;
 		long deltaMinutes = ( deltaSeconds / 60 ) % 60;
 		long deltaHours = ( deltaMinutes / 60 ) % 60;
@@ -169,20 +182,24 @@ public class NewPageSearchApplication {
 	}
 
 	public static class SortRulesByRuleNameAlpha implements Comparator<PageRule> {
-		public SortRulesByRuleNameAlpha() {
+		public SortRulesByRuleNameAlpha()
+		{
 		};
 
 		@Override
-		public int compare( PageRule arg0, PageRule arg1 ) {
+		public int compare( PageRule arg0, PageRule arg1 )
+		{
 			return arg0.getSearchName().compareTo( arg1.getSearchName() );
 		}
 	}
 
-	private static void print( String s ) {
+	private static void print( String s )
+	{
 		logger.log( Level.INFO, s );
 	}
 
-	public static String getStartTime( String searchName ) throws FileNotFoundException, IllegalArgumentException, IOException {
+	public static String getStartTime( String searchName ) throws FileNotFoundException, IllegalArgumentException, IOException
+	{
 		String startTime = PersistentKeystore.get( searchName, "lastRunTime" );
 
 		if ( startTime == null || startTime.isEmpty() ) {
@@ -196,11 +213,13 @@ public class NewPageSearchApplication {
 		return startTime;
 	}
 
-	public static void storeStartTime( String searchName, String lastStamp ) {
+	public static void storeStartTime( String searchName, String lastStamp )
+	{
 		PersistentKeystore.put( searchName, "lastRunTime", lastStamp, true );
 	}
 
-	public static String getDefaultStartTime() throws FileNotFoundException, IllegalArgumentException, IOException {
+	public static String getDefaultStartTime() throws FileNotFoundException, IllegalArgumentException, IOException
+	{
 		String startTime = PersistentKeystore.get( "default", "lastRunTime" );
 
 		Calendar start = null;

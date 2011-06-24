@@ -24,12 +24,17 @@ package net.inervo;
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.io.InputStreamReader;
+import java.net.URL;
+import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.GregorianCalendar;
 import java.util.List;
+import java.util.Map.Entry;
 import java.util.logging.Level;
 
 import javax.xml.parsers.DocumentBuilder;
@@ -40,7 +45,12 @@ import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
+import org.wikipedia.Wiki;
 import org.xml.sax.SAXException;
+
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 
 public class WMFWiki11 extends org.wikipedia.WMFWiki {
 	private static final long serialVersionUID = 1L;
@@ -56,7 +66,8 @@ public class WMFWiki11 extends org.wikipedia.WMFWiki {
 	 * @param str
 	 * @return boolean
 	 */
-	protected boolean isEmptyOrNull( String str ) {
+	protected boolean isEmptyOrNull( String str )
+	{
 		if ( str == null || str.isEmpty() ) {
 			return true;
 		}
@@ -69,7 +80,8 @@ public class WMFWiki11 extends org.wikipedia.WMFWiki {
 	 * @param input
 	 * @return long
 	 */
-	protected long tryLongParse( String input ) {
+	protected long tryLongParse( String input )
+	{
 		long ret = 0L;
 		try {
 			ret = Long.parseLong( input );
@@ -81,13 +93,110 @@ public class WMFWiki11 extends org.wikipedia.WMFWiki {
 	}
 
 	/**
+	 * Gets the revision history of a page between two dates.
+	 * 
+	 * @param title
+	 *            a page
+	 * @param start
+	 *            the date to start enumeration (the latest of the two dates)
+	 * @param end
+	 *            the date to stop enumeration (the earliest of the two dates)
+	 * @return the revisions of that page in that time span
+	 * @throws IOException
+	 *             if a network error occurs
+	 * @since 0.19
+	 */
+
+	public WMFWiki11RevisionText getTopRevision( String title ) throws Exception
+	{
+		String url = apiUrl + "action=query&prop=revisions&rvprop=timestamp|user|comment|content|ids&rvlimit=1&format=json&titles="
+			+ URLEncoder.encode( title, "UTF-8" );
+		String pageContent = fetch( url, "getTopRevision", false );
+
+		JsonParser parser = new JsonParser();
+		JsonElement headElement = parser.parse( pageContent );
+
+		JsonObject head = headElement.getAsJsonObject();
+		JsonObject query = head.get( "query" ).getAsJsonObject();
+		JsonObject pages = query.get( "pages" ).getAsJsonObject();
+
+		if ( pages.entrySet().size() == 0 ) {
+			// no entries.
+			return null;
+		} else if ( pages.entrySet().size() > 1 ) {
+			throw new IOException( "we expected one entry. This is awkward, we don't know what to do from here." );
+		}
+
+		JsonObject page = null;
+		for ( Entry<String, JsonElement> entry : pages.entrySet() ) {
+			page = entry.getValue().getAsJsonObject();
+			break;
+		}
+		String outTitle = page.get( "title" ).getAsString();
+
+		JsonObject revision = page.get( "revisions" ).getAsJsonArray().get( 0 ).getAsJsonObject();
+
+		long revid = revision.get( "revid" ).getAsLong();
+		Calendar timestamp = timestampToCalendar( convertTimestamp( revision.get( "timestamp" ).getAsString() ) );
+		String summary = revision.get( "comment" ).getAsString();
+		String user = revision.get( "user" ).getAsString();
+
+		boolean minor = isEmptyOrNull( revision.get( "minor" ) );
+		boolean bot = isEmptyOrNull( revision.get( "bot" ) );
+
+		String content = revision.get( "*" ).getAsString();
+
+		return new WMFWiki11RevisionText( this, revid, timestamp, outTitle, summary, user, minor, bot, content );
+	}
+
+	protected boolean isEmptyOrNull( JsonElement element )
+	{
+		if ( element == null || element.isJsonNull() ) {
+			return false;
+		}
+
+		String str = element.getAsString();
+		if ( str.length() == 0 || str.contentEquals( "0" ) ) {
+			return false;
+		}
+
+		return true;
+	}
+
+	protected Revision populateRevision( JsonObject page )
+	{
+
+		return null;
+	}
+
+	public static String fetchPage( String urlString ) throws Exception
+	{
+		URL url = new URL( urlString );
+		StringBuilder content = new StringBuilder();
+		BufferedReader in = new BufferedReader( new InputStreamReader( url.openStream() ) );
+
+		String inputLine;
+
+		while ( ( inputLine = in.readLine() ) != null ) {
+			// System.out.println("il: " + inputLine);
+			content.append( inputLine );
+		}
+
+		in.close();
+		return content.toString();
+	}
+
+	/******************************/
+
+	/**
 	 * From a DOM Element object, parse and return the Revision object
 	 * 
 	 * @param DOM
 	 *            Element
 	 * @return Revision object
 	 */
-	protected Revision parseRevision( Element ele ) {
+	protected Revision parseRevision( Element ele )
+	{
 		long oldid = tryLongParse( ele.getAttribute( "revid" ) );
 		log( Level.INFO, ele.getAttribute( "timestamp" ), "timestamp" );
 		Calendar timestamp = timestampToCalendar( convertTimestamp( ele.getAttribute( "timestamp" ) ) );
@@ -122,7 +231,9 @@ public class WMFWiki11 extends org.wikipedia.WMFWiki {
 	 * @throws SAXException
 	 *             on parsing error
 	 */
-	public Revisions newPages( int amount, int namespace, int rcoptions, Calendar start ) throws IOException, ParserConfigurationException, SAXException {
+	public Revisions newPages( int amount, int namespace, int rcoptions, Calendar start ) throws IOException, ParserConfigurationException,
+		SAXException
+	{
 		return newPages( amount, namespace, rcoptions, start, new GregorianCalendar() );
 	}
 
@@ -146,7 +257,9 @@ public class WMFWiki11 extends org.wikipedia.WMFWiki {
 	 * @throws SAXException
 	 *             on parsing error
 	 */
-	public Revisions newPages( int amount, int namespace, int rcoptions, String start ) throws IOException, ParserConfigurationException, SAXException {
+	public Revisions newPages( int amount, int namespace, int rcoptions, String start ) throws IOException, ParserConfigurationException,
+		SAXException
+	{
 		return newPages( amount, namespace, rcoptions, timestampToCalendar( start ), new GregorianCalendar() );
 	}
 
@@ -173,10 +286,12 @@ public class WMFWiki11 extends org.wikipedia.WMFWiki {
 	 * @throws SAXException
 	 *             on parsing error
 	 */
-	public Revisions newPages( int amount, int namespace, int rcoptions, Calendar start, Calendar end ) throws IOException, ParserConfigurationException,
-			SAXException {
+	public Revisions newPages( int amount, int namespace, int rcoptions, Calendar start, Calendar end ) throws IOException,
+		ParserConfigurationException, SAXException
+	{
 		StringBuilder url = new StringBuilder( query );
-		url.append( "action=query&list=recentchanges&rcprop=title%7Cids%7Cuser%7Ctimestamp%7Cflags%7Ccomment&rclimit=max&rcdir=newer&rctype=new&rcend=" );
+		url
+			.append( "action=query&list=recentchanges&rcprop=title%7Cids%7Cuser%7Ctimestamp%7Cflags%7Ccomment&rclimit=max&rcdir=newer&rctype=new&rcend=" );
 		url.append( calendarToTimestamp( end ) );
 
 		if ( namespace != ALL_NAMESPACES ) {
@@ -232,7 +347,8 @@ public class WMFWiki11 extends org.wikipedia.WMFWiki {
 	 * @param amount
 	 * @return rcstart string for our next set of results
 	 */
-	protected String parseRecentChangesDocument( Element docEle, ArrayList<Revision> revisions, int amount ) {
+	protected String parseRecentChangesDocument( Element docEle, ArrayList<Revision> revisions, int amount )
+	{
 		NodeList rcitems = docEle.getElementsByTagName( "recentchanges" );
 
 		String nextStart = null;
@@ -280,7 +396,8 @@ public class WMFWiki11 extends org.wikipedia.WMFWiki {
 	 *            , a NodeList starting with the query-continue element(s).
 	 * @return the rcstart String, parsed to a timestamp
 	 */
-	protected String parseQueryContinue( NodeList qcitems ) {
+	protected String parseQueryContinue( NodeList qcitems )
+	{
 		String nextStart = null;
 
 		OUTER: for ( int j = 0; j < qcitems.getLength(); ++j ) {
@@ -314,7 +431,8 @@ public class WMFWiki11 extends org.wikipedia.WMFWiki {
 	 *             if a network error occurs
 	 * @since 0.23
 	 */
-	public Revision[] recentChanges( int amount ) throws IOException {
+	public Revision[] recentChanges( int amount ) throws IOException
+	{
 		return recentChanges( amount, MAIN_NAMESPACE, 0, false );
 	}
 
@@ -327,9 +445,10 @@ public class WMFWiki11 extends org.wikipedia.WMFWiki {
 	 * @see #timestampToCalendar
 	 * @since 0.08
 	 */
-	protected String calendarToTimestamp( Calendar c ) {
-		return String.format( "%04d%02d%02d%02d%02d%02d", c.get( Calendar.YEAR ), c.get( Calendar.MONTH ) + 1, c.get( Calendar.DAY_OF_MONTH ),
-				c.get( Calendar.HOUR_OF_DAY ), c.get( Calendar.MINUTE ), c.get( Calendar.SECOND ) );
+	protected String calendarToTimestamp( Calendar c )
+	{
+		return String.format( "%04d%02d%02d%02d%02d%02d", c.get( Calendar.YEAR ), c.get( Calendar.MONTH ) + 1, c
+			.get( Calendar.DAY_OF_MONTH ), c.get( Calendar.HOUR_OF_DAY ), c.get( Calendar.MINUTE ), c.get( Calendar.SECOND ) );
 	}
 
 	/**
@@ -344,11 +463,13 @@ public class WMFWiki11 extends org.wikipedia.WMFWiki {
 			this.rcstart = rcstart;
 		}
 
-		public List<Revision> getRevisionList() {
+		public List<Revision> getRevisionList()
+		{
 			return revs;
 		}
 
-		public String getRcStart() {
+		public String getRcStart()
+		{
 			return rcstart;
 		}
 	}
