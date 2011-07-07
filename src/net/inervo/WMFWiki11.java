@@ -322,7 +322,16 @@ public class WMFWiki11 extends org.wikipedia.WMFWiki {
 		ArrayList<Revision> revisions = new ArrayList<Revision>( amount );
 		do {
 			String temp = url.toString();
-			String line = fetch( temp + rcstart, "newPages", false );
+			String line = null;
+			
+			try {
+			line = fetch( temp + rcstart, "newPages", false );
+			} catch (IOException ex) {
+				log( Level.WARNING, "fetching newPages returned an IOException. Retrying.", "recentChangesFFF" );
+
+				// retry once.
+				line = fetch( temp + rcstart, "newPages", false );
+			}
 
 			// DOM XML parser
 			DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
