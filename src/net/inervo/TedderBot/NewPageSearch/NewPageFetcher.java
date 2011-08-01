@@ -143,8 +143,9 @@ public class NewPageFetcher {
 	{
 		Revision rev = result.getRev();
 		SimpleDateFormat sdf = new SimpleDateFormat( "HH:mm, dd MMMM yyyy" );
-		return "*{{la|" + rev.getPage() + "}} by {{User|" + rev.getUser() + "}} started at <span class=\"mw-newpages-time\">"
-			+ sdf.format( rev.getTimestamp().getTime() ) + "</span>, score: " + result.getScore();
+		return "* <span id=\"result\">" + makeFakeLA( rev.getPage() ) + " by " + makeFakeUser( rev.getUser() )
+			+ " started at <span class=\"mw-newpages-time\">" + sdf.format( rev.getTimestamp().getTime() ) + "</span>, score: "
+			+ result.getScore();
 	}
 
 	protected void archiveResults( String archivePage, Collection<String> lines ) throws Exception
@@ -270,7 +271,8 @@ public class NewPageFetcher {
 		for ( Entry<String, List<ScoreResults>> noteEntry : scoreNotes.entrySet() ) {
 			String article = noteEntry.getKey();
 			List<ScoreResults> notes = noteEntry.getValue();
-			errorBuilder.append( "*{{la|" + article + "}}\n" );
+
+			errorBuilder.append( "*" + makeFakeLA( article ) + "\n" );
 			for ( ScoreResults note : notes ) {
 				errorBuilder.append( "** Score: " + note.getScore() + ", pattern: <nowiki>" + note.getRule().getPattern().pattern()
 					+ "</nowiki>, inhibitor count: " + note.getRule().getIgnoreCount() + "\n" );
@@ -343,6 +345,22 @@ public class NewPageFetcher {
 	}
 
 	/*** helper functions ***/
+
+	protected static String makeFakeLA( String article )
+	{
+		String ret = "'''[[" + article + "]]''' | [[Talk:" + article + "|talk]] | <span class=\"plainlinks nourlexpansion\">[{{fullurl:"
+			+ article + "|action=edit}} history]</span>";
+
+		return ret;
+	}
+
+	protected static String makeFakeUser( String user )
+	{
+		String ret = "'''[[User:" + user + "|" + user + "]]''' [[User talk:" + user + "|talk]] [[Special:Contributions/" + user
+			+ "|contribs]]";
+
+		return ret;
+	}
 
 	protected static void info( String s )
 	{
