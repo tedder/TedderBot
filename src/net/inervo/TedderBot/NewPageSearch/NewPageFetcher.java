@@ -349,7 +349,7 @@ public class NewPageFetcher {
 	protected static String makeFakeLA( String article )
 	{
 		String ret = "'''[[" + article + "]]''' | [[Talk:" + article + "|talk]] | <span class=\"plainlinks nourlexpansion\">[{{fullurl:"
-			+ article + "|action=edit}} history]</span>";
+			+ article + "|action=history}} history]</span>";
 
 		return ret;
 	}
