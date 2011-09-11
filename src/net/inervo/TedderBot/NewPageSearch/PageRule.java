@@ -190,10 +190,19 @@ public class PageRule {
 		private List<Pattern> ignore;
 		private Pattern pattern;
 		protected int score;
+		protected boolean isSizeRule = false;
+		private int sizeRuleSize = 0;
 
 		public MatchRule( String pattern )
 		{
 			setPattern( pattern );
+
+			Matcher sizeMatcher = Pattern.compile( "^$SIZE\\s*>\\s*(\\d+)$" ).matcher( pattern.toString() );
+			if ( sizeMatcher.matches() ) {
+				isSizeRule = true;
+				sizeRuleSize = Integer.valueOf( sizeMatcher.group( 1 ) );
+			}
+
 		}
 
 		public void addInhibitor( String pattern )
@@ -252,6 +261,16 @@ public class PageRule {
 		public int getScore()
 		{
 			return score;
+		}
+
+		public boolean isSizeRule()
+		{
+			return isSizeRule;
+		}
+
+		public int getSizeRuleSize()
+		{
+			return sizeRuleSize;
 		}
 
 	}
