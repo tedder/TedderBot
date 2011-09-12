@@ -274,8 +274,12 @@ public class NewPageFetcher {
 
 			errorBuilder.append( "*" + makeFakeLA( article ) + "\n" );
 			for ( ScoreResults note : notes ) {
+				String inhibitor = "";
+				if ( note.getRule().getIgnoreCount() > 0 ) {
+					inhibitor = ", inhibitor count: " + note.getRule().getIgnoreCount();
+				}
 				errorBuilder.append( "** Score: " + note.getScore() + ", pattern: <nowiki>" + note.getRule().getPattern().pattern()
-					+ "</nowiki>, inhibitor count: " + note.getRule().getIgnoreCount() + "\n" );
+					+ "</nowiki>" + inhibitor + "\n" );
 			}
 
 		}

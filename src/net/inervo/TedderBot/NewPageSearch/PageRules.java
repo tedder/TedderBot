@@ -93,7 +93,7 @@ public class PageRules {
 		return prp;
 	}
 
-	protected List<PageRule> getRules()
+	public List<PageRule> getRules()
 	{
 		return pages;
 	}

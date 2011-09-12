@@ -196,13 +196,6 @@ public class PageRule {
 		public MatchRule( String pattern )
 		{
 			setPattern( pattern );
-
-			Matcher sizeMatcher = Pattern.compile( "^$SIZE\\s*>\\s*(\\d+)$" ).matcher( pattern.toString() );
-			if ( sizeMatcher.matches() ) {
-				isSizeRule = true;
-				sizeRuleSize = Integer.valueOf( sizeMatcher.group( 1 ) );
-			}
-
 		}
 
 		public void addInhibitor( String pattern )
@@ -232,11 +225,25 @@ public class PageRule {
 		public void setPattern( Pattern pattern )
 		{
 			this.pattern = pattern;
+			validatePattern();
 		}
 
 		public void setPattern( String pattern )
 		{
 			this.pattern = Pattern.compile( pattern, Pattern.MULTILINE | Pattern.CASE_INSENSITIVE );
+			validatePattern();
+		}
+		
+		
+		private void validatePattern() {
+			Matcher sizeMatcher = Pattern.compile( "^\\$SIZE\\s*>\\s*(\\d+)$" ).matcher( pattern.toString() );
+
+			if ( sizeMatcher.matches() ) {
+				isSizeRule = true;
+				sizeRuleSize = Integer.valueOf( sizeMatcher.group( 1 ) );
+			} else if ( pattern.toString().contains( "SIZE" ) ) {
+				throw new RuntimeException( "rule didn't match, but probably should have: " + pattern.toString() );
+			}
 		}
 
 		public List<Pattern> getIgnore()
