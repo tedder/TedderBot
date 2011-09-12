@@ -81,9 +81,15 @@ public class ArticleScorer {
 	}
 
 	protected int scoreSize( String articleText, PageRule.MatchRule rule ) {
-		if ( articleText.length() > rule.getSizeRuleSize() ) {
+		
+		if ( rule.getSizeRuleDirection().contentEquals( ">" ) && articleText.length() > rule.getSizeRuleSize() ) {
 			return rule.getScore();
 		}
+		
+		if ( rule.getSizeRuleDirection().contentEquals( "<" ) && articleText.length() < rule.getSizeRuleSize() ) {
+			return rule.getScore();
+		}
+
 		
 		return 0;
 	}

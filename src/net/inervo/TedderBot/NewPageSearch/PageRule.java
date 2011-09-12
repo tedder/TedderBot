@@ -192,6 +192,7 @@ public class PageRule {
 		protected int score;
 		protected boolean isSizeRule = false;
 		private int sizeRuleSize = 0;
+		private String sizeRuleDirection = ">";
 
 		public MatchRule( String pattern )
 		{
@@ -236,11 +237,12 @@ public class PageRule {
 		
 		
 		private void validatePattern() {
-			Matcher sizeMatcher = Pattern.compile( "^\\$SIZE\\s*>\\s*(\\d+)$" ).matcher( pattern.toString() );
+			Matcher sizeMatcher = Pattern.compile( "^\\$SIZE\\s*(<|>)\\s*(\\d+)$" ).matcher( pattern.toString() );
 
 			if ( sizeMatcher.matches() ) {
 				isSizeRule = true;
-				sizeRuleSize = Integer.valueOf( sizeMatcher.group( 1 ) );
+				sizeRuleDirection = sizeMatcher.group( 1 );
+				sizeRuleSize = Integer.valueOf( sizeMatcher.group( 2 ) );
 			} else if ( pattern.toString().contains( "SIZE" ) ) {
 				throw new RuntimeException( "rule didn't match, but probably should have: " + pattern.toString() );
 			}
@@ -279,6 +281,12 @@ public class PageRule {
 		{
 			return sizeRuleSize;
 		}
+		
+		public String getSizeRuleDirection()
+		{
+			return sizeRuleDirection;
+		}
+
 
 	}
 
