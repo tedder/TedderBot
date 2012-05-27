@@ -55,6 +55,8 @@ public class NewPageFetcher {
 	protected WikiFetcher fetcher = null;
 	protected PageEditor editor = null;
 	private static final Logger logger = Logger.getLogger( NewPageFetcher.class.getCanonicalName() );
+	
+	private static final int CONTENT_MAX_LENGTH = 190 * 1024;
 
 	// protected List<String> errors = new ArrayList<String>();
 
@@ -212,8 +214,14 @@ public class NewPageFetcher {
 			String countLabel = results.size() == 1 ? "article" : "articles";
 			subject.append( ", " + results.size() + " " + countLabel );
 			for ( RuleResultPage result : results ) {
+				if ( searchResultText.length() > CONTENT_MAX_LENGTH ) {
+					searchResultText.append( "  (further content truncated)" );
+					break;
+				}
+
 				searchResultText.append( getResultOutputLine( result ) );
 				searchResultText.append( "\n" );
+				
 			}
 		} else {
 			searchResultText.append( "There are no current results for this search, sorry." );
@@ -274,6 +282,11 @@ public class NewPageFetcher {
 
 			errorBuilder.append( "*" + makeFakeLA( article ) + "\n" );
 			for ( ScoreResults note : notes ) {
+				if ( errorBuilder.length() > CONTENT_MAX_LENGTH ) {
+					errorBuilder.append( "  (further content truncated)" );
+					break;
+				}
+				
 				String inhibitor = "";
 				if ( note.getRule().getIgnoreCount() > 0 ) {
 					inhibitor = ", inhibitor count: " + note.getRule().getIgnoreCount();

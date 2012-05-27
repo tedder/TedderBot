@@ -133,6 +133,10 @@ public class WMFWiki11 extends org.wikipedia.WMFWiki {
 		}
 		String outTitle = page.get( "title" ).getAsString();
 
+		if( page.get( "revisions" ) == null || page.get( "revisions" ).getAsJsonArray().size() < 1 ) {
+			return null;
+		}
+		
 		JsonObject revision = page.get( "revisions" ).getAsJsonArray().get( 0 ).getAsJsonObject();
 
 		long revid = revision.get( "revid" ).getAsLong();

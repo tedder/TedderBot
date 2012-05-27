@@ -61,6 +61,10 @@ public class PageRule {
 		Pattern templatePattern = Pattern.compile( "^\\s*(\\d*)\\s*\\$\\$(.*)\\$\\$\\s*$" );
 
 		WMFWiki11RevisionText rev = fetcher.getPage( pageName, true );
+		if ( rev == null ) {
+			errors.add("couldn't get top revision of " + pageName);
+			return;
+		}
 		String input = null;
 		try {
 			revisionID = rev.getRevid();
