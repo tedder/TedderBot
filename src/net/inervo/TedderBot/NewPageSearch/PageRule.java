@@ -43,50 +43,50 @@ public class PageRule {
 	private List<MatchRule> patterns = new ArrayList<MatchRule>();
 	private List<String> errors = new LinkedList<String>();
 
-	public PageRule( WikiFetcher fetcher, String pageName, String searchName ) throws Exception {
+	public PageRule(WikiFetcher fetcher, String pageName, String searchName) throws Exception {
 		this.fetcher = fetcher;
 		this.searchName = searchName;
 		this.pageName = pageName;
-		parseRule( pageName );
+		parseRule(pageName);
 	}
 
-	private void parseRule( String pageName ) throws Exception {
+	private void parseRule(String pageName) throws Exception {
 
-		Pattern rexLine = Pattern.compile( "^\\s*([\\-\\d]*)\\s*\\/(.*?)\\/\\s*(\\,\\s*.*\\s*)?$" );
-		Pattern defaultScorePattern = Pattern.compile( "^\\s*@@(\\d+)@@\\s*$" );
-		Pattern templatePattern = Pattern.compile( "^\\s*(\\d*)\\s*\\$\\$(.*)\\$\\$\\s*$" );
+		Pattern rexLine = Pattern.compile("^\\s*([\\-\\d]*)\\s*\\/(.*?)\\/\\s*(\\,\\s*.*\\s*)?$");
+		Pattern defaultScorePattern = Pattern.compile("^\\s*@@(\\d+)@@\\s*$");
+		Pattern templatePattern = Pattern.compile("^\\s*(\\d*)\\s*\\$\\$(.*)\\$\\$\\s*$");
 
 		String input = null;
 		try {
-			input = fetcher.getPageText( pageName, true );
-		} catch ( Exception ex ) {
-			throw new Exception( "failed fetching rule at " + pageName + ". Original exception: " + ex.getMessage() );
+			input = fetcher.getPageText(pageName, true);
+		} catch (Exception ex) {
+			throw new Exception("failed fetching rule at " + pageName + ". Original exception: " + ex.getMessage());
 		}
 		// print( "text: |" + input + "|" );
-		Scanner s = new Scanner( input ).useDelimiter( "\\n" );
+		Scanner s = new Scanner(input).useDelimiter("\\n");
 
-		while ( s.hasNext() ) {
-			String line = stripComments( s.next() );
+		while (s.hasNext()) {
+			String line = stripComments(s.next());
 
-			Matcher rexMatcher = rexLine.matcher( line );
-			Matcher scoreMatcher = defaultScorePattern.matcher( line );
-			Matcher templateMatcher = templatePattern.matcher( line );
+			Matcher rexMatcher = rexLine.matcher(line);
+			Matcher scoreMatcher = defaultScorePattern.matcher(line);
+			Matcher templateMatcher = templatePattern.matcher(line);
 
 			MatchRule rule = new MatchRule();
 
-			if ( rexMatcher.matches() ) {
-				String scoreString = rexMatcher.group( 1 );
+			if (rexMatcher.matches()) {
+				String scoreString = rexMatcher.group(1);
 				rule.score = DEFAULT_SCORE;
-				if ( scoreString.length() > 0 ) {
-					rule.score = Integer.parseInt( scoreString );
+				if (scoreString.length() > 0) {
+					rule.score = Integer.parseInt(scoreString);
 				}
 
-				safeSetPattern( rule, rexMatcher.group( 2 ) );
+				safeSetPattern(rule, rexMatcher.group(2));
 
-				if ( rexMatcher.groupCount() >= 3 ) {
-					String inhibitors = rexMatcher.group( 3 );
+				if (rexMatcher.groupCount() >= 3) {
+					String inhibitors = rexMatcher.group(3);
 					// print( "inhib: " + inhibitors );
-					parseInhibitors( rule, inhibitors );
+					parseInhibitors(rule, inhibitors);
 				}
 				// if ( rexMatcher.groupCount() > 2 ) {
 				// String extra = rexMatcher.group( 3 );
@@ -96,29 +96,29 @@ public class PageRule {
 				// }
 
 				// print( "match: " + rule.pattern + " / " + rule.score );
-				if ( rule.isValidPattern() ) {
-					patterns.add( rule );
+				if (rule.isValidPattern()) {
+					patterns.add(rule);
 				}
-			} else if ( scoreMatcher.matches() ) {
-				String score = scoreMatcher.group( 1 );
-				threshold = Integer.parseInt( score );
-			} else if ( templateMatcher.matches() ) {
+			} else if (scoreMatcher.matches()) {
+				String score = scoreMatcher.group(1);
+				threshold = Integer.parseInt(score);
+			} else if (templateMatcher.matches()) {
 				// print( "category: " + line + " count: " + categoryMatcher.groupCount() );
-				String scoreString = templateMatcher.group( 1 );
+				String scoreString = templateMatcher.group(1);
 				rule.score = DEFAULT_SCORE;
-				if ( scoreString.length() > 0 ) {
-					rule.score = Integer.parseInt( scoreString );
+				if (scoreString.length() > 0) {
+					rule.score = Integer.parseInt(scoreString);
 				}
 
-				String actualPattern = "\\{\\{" + templateMatcher.group( 2 ) + ".*?\\}\\}";
-				safeSetPattern( rule, actualPattern );
+				String actualPattern = "\\{\\{" + templateMatcher.group(2) + ".*?\\}\\}";
+				safeSetPattern(rule, actualPattern);
 
-				if ( rule.isValidPattern() ) {
-					patterns.add( rule );
+				if (rule.isValidPattern()) {
+					patterns.add(rule);
 				}
-			} else if ( line.trim().length() > 0 ) {
+			} else if (line.trim().length() > 0) {
 				// print( "no match: |" + line + "|" );
-				errors.add( "no match: " + line );
+				errors.add("no match: " + line);
 			}
 		}
 
@@ -126,52 +126,53 @@ public class PageRule {
 
 	}
 
-	private void safeSetPattern( MatchRule rule, String pattern ) {
-		if ( pattern.contains( "\\p{" ) ) {
-			errors.add( "skipped pattern, character sets are poorly supported, pattern: " + pattern );
+	private void safeSetPattern(MatchRule rule, String pattern) {
+		if (pattern.contains("\\p{")) {
+			errors.add("skipped pattern, character sets are poorly supported, pattern: " + pattern);
 			return;
 		}
 
 		try {
-			rule.setPattern( pattern );
+			rule.setPattern(pattern);
 
-		} catch ( PatternSyntaxException ex ) {
+		} catch (PatternSyntaxException ex) {
 			// catch and rethrow with more context.
-			errors.add( "failed compiling rule, error was " + ex.getDescription() + ", pattern: " + ex.getPattern() );
+			errors.add("failed compiling rule, error was " + ex.getDescription() + ", pattern: " + ex.getPattern());
 			return;
 		}
 	}
 
-	private void safeAddInhibitor( MatchRule rule, String pattern ) {
-		if ( pattern.contains( "\\p{" ) ) {
-			errors.add( "skipped inhibitor pattern, character sets are poorly supported, pattern: <nowiki>" + pattern + "</nowiki>" );
+	private void safeAddInhibitor(MatchRule rule, String pattern) {
+		if (pattern.contains("\\p{")) {
+			errors.add("skipped inhibitor pattern, character sets are poorly supported, pattern: <nowiki>" + pattern
+					+ "</nowiki>");
 			return;
 		}
 
 		try {
-			rule.addInhibitor( pattern );
+			rule.addInhibitor(pattern);
 
-		} catch ( PatternSyntaxException ex ) {
+		} catch (PatternSyntaxException ex) {
 			// catch and rethrow with more context.
-			errors.add( "failed compiling inhibitor rule in [[" + pageName + "]], error was " + ex.getDescription() + ", pattern: <nowiki>" + ex.getPattern()
-					+ "</nowiki>" );
+			errors.add("failed compiling inhibitor rule in [[" + pageName + "]], error was " + ex.getDescription()
+					+ ", pattern: <nowiki>" + ex.getPattern() + "</nowiki>");
 			return;
 		}
 	}
 
-	private String stripComments( String next ) {
-		return next.replaceAll( "<!--.*?-->", "" );
+	private String stripComments(String next) {
+		return next.replaceAll("<!--.*?-->", "");
 	}
 
-	private void parseInhibitors( MatchRule rule, String inhibitors ) {
-		if ( inhibitors == null || inhibitors.length() == 0 ) {
+	private void parseInhibitors(MatchRule rule, String inhibitors) {
+		if (inhibitors == null || inhibitors.length() == 0) {
 			return;
 		}
-		Pattern inhibitorPattern = Pattern.compile( "\\,?\\s*\\/(.+?)\\/" );
-		Matcher matcher = inhibitorPattern.matcher( inhibitors );
-		
-		while ( matcher.find() ) {
-			safeAddInhibitor( rule, matcher.group( 1 ) );
+		Pattern inhibitorPattern = Pattern.compile("\\,?\\s*\\/(.+?)\\/");
+		Matcher matcher = inhibitorPattern.matcher(inhibitors);
+
+		while (matcher.find()) {
+			safeAddInhibitor(rule, matcher.group(1));
 		}
 	}
 
@@ -181,17 +182,17 @@ public class PageRule {
 		private Pattern pattern;
 		protected int score;
 
-		public MatchRule( String pattern ) {
-			setPattern( pattern );
+		public MatchRule(String pattern) {
+			setPattern(pattern);
 		}
 
-		public void addInhibitor( String pattern ) {
-			if ( ignore == null ) {
+		public void addInhibitor(String pattern) {
+			if (ignore == null) {
 				ignore = new ArrayList<Pattern>();
 			}
 
-			if ( pattern != null && pattern.length() > 0 ) {
-				ignore.add( Pattern.compile( pattern, Pattern.MULTILINE | Pattern.CASE_INSENSITIVE ) );
+			if (pattern != null && pattern.length() > 0) {
+				ignore.add(Pattern.compile(pattern, Pattern.MULTILINE | Pattern.CASE_INSENSITIVE));
 			}
 		}
 
@@ -199,19 +200,19 @@ public class PageRule {
 		}
 
 		public boolean isValidPattern() {
-			if ( pattern != null && pattern.toString() != null && pattern.toString().length() > 0 ) {
+			if (pattern != null && pattern.toString() != null && pattern.toString().length() > 0) {
 				return true;
 			}
 
 			return false;
 		}
 
-		public void setPattern( Pattern pattern ) {
+		public void setPattern(Pattern pattern) {
 			this.pattern = pattern;
 		}
 
-		public void setPattern( String pattern ) {
-			this.pattern = Pattern.compile( pattern, Pattern.MULTILINE | Pattern.CASE_INSENSITIVE );
+		public void setPattern(String pattern) {
+			this.pattern = Pattern.compile(pattern, Pattern.MULTILINE | Pattern.CASE_INSENSITIVE);
 		}
 
 		public List<Pattern> getIgnore() {
@@ -219,7 +220,7 @@ public class PageRule {
 		}
 
 		public int getIgnoreCount() {
-			if ( ignore == null ) {
+			if (ignore == null) {
 				return 0;
 			}
 
@@ -273,7 +274,8 @@ public class PageRule {
 	}
 
 	/**
-	 * where we are placing errors for this configuration, such as 'User:TedderBot/NewPageSearch/Oregon/errors'
+	 * where we are placing errors for this configuration, such as
+	 * 'User:TedderBot/NewPageSearch/Oregon/errors'
 	 * 
 	 * @return
 	 */
@@ -282,7 +284,8 @@ public class PageRule {
 	}
 
 	/**
-	 * where we are placing archives for this configuration, such as 'User:TedderBot/NewPageSearch/Oregon/errors'
+	 * where we are placing archives for this configuration, such as
+	 * 'User:TedderBot/NewPageSearch/Oregon/errors'
 	 * 
 	 * @return
 	 */
@@ -315,6 +318,18 @@ public class PageRule {
 	 */
 	public int getThreshold() {
 		return threshold;
+	}
+
+	@Override
+	public boolean equals(Object o) {
+		if (o == null)
+			return false;
+		if (o == this)
+			return true;
+		if (o.getClass() != getClass())
+			return false;
+
+		return searchName.equals(((PageRule) o).getSearchName());
 	}
 
 }

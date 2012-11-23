@@ -21,6 +21,7 @@ package net.inervo.Wiki.Cache;
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.net.URL;
@@ -45,7 +46,9 @@ public class ArticleCache {
 	}
 
 	public void init() throws Exception {
-		URL configXML = this.getClass().getClassLoader().getResource( "ehcache.xml" );
+		//URL configXML = this.getClass().getClassLoader().getResource( "ehcache.xml" );
+		// I need to fix this classloader.
+		URL configXML = new File("/mnt/readynas/documents/code/TedderBot/ehcache.xml").toURI().toURL();
 		info( "configuration location: " + configXML );
 		cacheManager = CacheManager.create( configXML );
 

@@ -30,6 +30,7 @@ import java.util.GregorianCalendar;
 import java.util.List;
 import java.util.TimeZone;
 import java.util.logging.FileHandler;
+import java.util.logging.Handler;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -45,17 +46,27 @@ import net.inervo.Wiki.Cache.CachedFetcher;
 
 public class NewPageSearchApplication {
 	private static final long DAY_IN_MILLISECONDS = 86400000;
-	private static boolean DEBUG_MODE = false;
 	// consider this an "oversearch" period.
 	public static final int PREPEND_SEARCH_DAYS = -7;
 	private static final Logger logger = Logger.getLogger( NewPageSearchApplication.class.getCanonicalName() ); // only
-	private static final String DEBUG_SEARCH = "Oregon";
 
 	public static void main( String[] args ) throws Exception {
+		String awsProps = "";
+		String wikiProps = "";
+		String debugSearch = null;
 		if ( args.length < 2 ) {
 			print( "need params given in this order: AWS prop file, wiki prop file" );
+		} else {
+			awsProps = args[0];
+			wikiProps = args[1];
+		}
+		if (args.length >= 3) {
+			debugSearch = args[2];
 		}
 
+		for(Handler h : Logger.getLogger( Logger.GLOBAL_LOGGER_NAME ).getHandlers() ) {
+			Logger.getLogger( Logger.GLOBAL_LOGGER_NAME ).removeHandler( h );
+		}
 		Logger.getLogger( Logger.GLOBAL_LOGGER_NAME ).addHandler( new FileHandler( "newpagesearch.log" ) );
 
 		// shutdown hook. Enable early so we don't blow up the cache.
@@ -65,8 +76,8 @@ public class NewPageSearchApplication {
 		ArticleCache ac = null;
 
 		try {
-			PersistentKeystore.initialize( args[0] );
-			Configuration config = new Configuration( args[1] );
+			PersistentKeystore.initialize( awsProps );
+			Configuration config = new Configuration( wikiProps );
 
 			WMFWiki11 wiki = new WMFWiki11( "en.wikipedia.org" );
 			wiki.setMaxLag( 15 );
@@ -77,12 +88,10 @@ public class NewPageSearchApplication {
 			print( "db lag (seconds): " + wiki.getCurrentDatabaseLag() );
 			BotFlag.check( wiki );
 
-			String debugOverride = DEBUG_MODE ? DEBUG_SEARCH : null;
-
 			ac = new ArticleCache( wiki );
 			WikiFetcher fetcher = new CachedFetcher( ac );
 
-			PageRules rules = new PageRules( fetcher, "User:AlexNewArtBot/Master", debugOverride );
+			PageRules rules = new PageRules( fetcher, "User:AlexNewArtBot/Master", debugSearch );
 
 			PageEditor editor = new RetryEditor( wiki );
 
@@ -143,9 +152,11 @@ public class NewPageSearchApplication {
 			int zeroComp = pivot.compareTo( arg0.getSearchName().toLowerCase() );
 			int oneComp = pivot.compareTo( arg1.getSearchName().toLowerCase() );
 			int directComp = arg0.getSearchName().toLowerCase().compareTo( arg1.getSearchName().toLowerCase() );
+			System.out.println(pivot + " - " + arg0.getSearchName() + " - " + arg1.getSearchName() + " == " + zeroComp + " / " + oneComp + " / " + directComp + " / abs: " + (zeroComp * oneComp <= 0) );
 
 			if ( zeroComp * oneComp <= 0 ) {
-				return Math.abs( directComp );
+				// removed this, it broke the Comparator "contract" in Java7 or an update to Java6. Is it needed for this to work? Hmm.
+				//return Math.abs( directComp );
 			}
 
 			return directComp;
