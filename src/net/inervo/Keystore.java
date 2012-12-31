@@ -24,6 +24,7 @@ package net.inervo;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -51,6 +52,12 @@ public class Keystore {
 
 	public Keystore( String propFilename, String domain ) throws FileNotFoundException, IllegalArgumentException, IOException {
 		this( new File( propFilename ), domain );
+	}
+	
+	public Keystore( InputStream propStream, String domain ) throws FileNotFoundException, IllegalArgumentException, IOException {
+		sdb = new AmazonSimpleDBClient( new PropertiesCredentials( propStream ) );
+		this.domain = domain;
+		createDataDomainIfNecessary( domain );
 	}
 
 	public Keystore( File propFile, String domain ) throws FileNotFoundException, IllegalArgumentException, IOException {

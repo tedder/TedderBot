@@ -46,9 +46,7 @@ public class ArticleCache {
 	}
 
 	public void init() throws Exception {
-		//URL configXML = this.getClass().getClassLoader().getResource( "ehcache.xml" );
-		// I need to fix this classloader.
-		URL configXML = new File("/mnt/readynas/documents/code/TedderBot/ehcache.xml").toURI().toURL();
+		URL configXML = this.getClass().getClassLoader().getResource( "ehcache.xml" );
 		info( "configuration location: " + configXML );
 		cacheManager = CacheManager.create( configXML );
 

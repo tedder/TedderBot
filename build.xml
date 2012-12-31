@@ -11,6 +11,10 @@
             <fileset dir="/mnt/readynas/documents/code/TedderBot/bin"/>
             <fileset dir="/mnt/readynas/documents/code/jwiki/bin"/>
             <fileset dir="/mnt/readynas/documents/code/project-libs/bin"/>
+            <fileset file="ehcache.xml" />
+        	<fileset file="AwsCredentials.properties" />
+        	<fileset file="wiki.properties" />
+
         </jar>
         <delete dir="/mnt/readynas/documents/code/NewPageFetcherApplication_lib"/>
         <mkdir dir="/mnt/readynas/documents/code/NewPageFetcherApplication_lib"/>

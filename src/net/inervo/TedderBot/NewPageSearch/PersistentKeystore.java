@@ -21,6 +21,9 @@ package net.inervo.TedderBot.NewPageSearch;
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+import java.io.File;
+import java.io.InputStream;
+
 import net.inervo.Keystore;
 
 public class PersistentKeystore {
@@ -49,6 +52,14 @@ public class PersistentKeystore {
 
 	protected static void initialize( String propFile ) throws Exception {
 		keystoreInstance = new Keystore( propFile, "WikiNewPageFetcher" );
+	}
+	
+	protected static void initialize( File propFile ) throws Exception {
+		keystoreInstance = new Keystore( propFile, "WikiNewPageFetcher" );
+	}
+	
+	protected static void initialize( InputStream prop ) throws Exception {
+		keystoreInstance = new Keystore( prop, "WikiNewPageFetcher" );
 	}
 
 	protected static Keystore getKeystore() {

@@ -24,37 +24,28 @@ package net.inervo.TedderBot;
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.Properties;
 
 public class Configuration {
 	private Properties configFile = null;
-	private String filename = null;
 
-	public Configuration( String filename ) throws IOException {
-		this.filename = filename;
+	public Configuration(String filename) throws IOException {
 		configFile = new Properties();
-		loadConfigurationFile();
+		configFile.load(new FileReader(new File(filename)));
+	}
+
+	public Configuration(InputStream stream) throws IOException {
+		configFile = new Properties();
+		configFile.load(stream);
 	}
 
 	public String getWikipediaUser() {
-		return configFile.getProperty( "username" );
+		return configFile.getProperty("username");
 	}
 
 	public String getWikipediaPassword() {
-		return configFile.getProperty( "password" );
+		return configFile.getProperty("password");
 	}
 
-	private void loadConfigurationFile() throws IOException {
-		// configFile.load(
-		// this.getClass().getClassLoader().getResourceAsStream(
-		// "/wiki.properties" ) );
-		// configFile.load( new FileReader( filename ) );
-		// configFile.load( this.getClass().getClassLoader().getResourceAsStream( new FileReader(filename) ) );
-
-		// ClassPathResource cpr = new ClassPathResource("ems-init.properties");
-		// Properties properties = loadProps(emsInitResource.getInputStream());
-
-		configFile.load( new FileReader( new File( filename ) ) );
-
-	}
 }
