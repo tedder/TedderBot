@@ -1,5 +1,7 @@
 package net.inervo.Wiki;
 
+import net.inervo.WMFWiki11RevisionText;
+
 /*
  * Copyright (c) 2011, Ted Timmons, Inervo Networks All rights reserved.
  * 
@@ -24,5 +26,5 @@ package net.inervo.Wiki;
 public interface WikiFetcher {
 	public String getPageText( String articleName ) throws Exception;
 	public String getPageText( String articleName, boolean disableCache ) throws Exception;
-
+	public WMFWiki11RevisionText getPage( String articleName, boolean disableCache ) throws Exception;
 }

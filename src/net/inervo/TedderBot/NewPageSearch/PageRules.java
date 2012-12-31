@@ -37,13 +37,15 @@ public class PageRules {
 	protected List<PageRule> pages = new ArrayList<PageRule>();
 	private static final Logger logger = Logger.getLogger( PageRules.class.getCanonicalName() );
 
-	public PageRules( WikiFetcher fetcher, String pageName, String ruleOverride ) throws Exception {
+	public PageRules( WikiFetcher fetcher, String pageName, String ruleOverride ) throws Exception
+	{
 		this.fetcher = fetcher;
 		parseMaster( pageName, ruleOverride );
 		// writeErrors();
 	}
 
-	protected void parseMaster( String masterPage, String ruleOverride ) throws Exception {
+	protected void parseMaster( String masterPage, String ruleOverride ) throws Exception
+	{
 		String input = fetcher.getPageText( masterPage, true );
 		Scanner s = new Scanner( input ).useDelimiter( "\\n" );
 
@@ -66,7 +68,8 @@ public class PageRules {
 		}
 	}
 
-	protected PageRule parseLine( String line ) throws Exception {
+	protected PageRule parseLine( String line ) throws Exception
+	{
 		Pattern rexLine = Pattern.compile( "^(.+?)\\s*(=>\\s*(.*))?$" );
 		Matcher rexMatcher = rexLine.matcher( line );
 		PageRule prp = null;
@@ -90,11 +93,13 @@ public class PageRules {
 		return prp;
 	}
 
-	protected List<PageRule> getRules() {
+	public List<PageRule> getRules()
+	{
 		return pages;
 	}
 
-	protected static void print( String s ) {
+	protected static void print( String s )
+	{
 		logger.log( Level.INFO, s );
 	}
 

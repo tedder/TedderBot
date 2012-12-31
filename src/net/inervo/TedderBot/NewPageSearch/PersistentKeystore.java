@@ -50,7 +50,7 @@ public class PersistentKeystore {
 		}
 	}
 
-	protected static void initialize( String propFile ) throws Exception {
+	public static void initialize( String propFile ) throws Exception {
 		keystoreInstance = new Keystore( propFile, "WikiNewPageFetcher" );
 	}
 	

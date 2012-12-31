@@ -21,6 +21,7 @@ package net.inervo.Wiki.Cache;
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+import net.inervo.WMFWiki11RevisionText;
 import net.inervo.Wiki.WikiFetcher;
 
 public class CachedFetcher implements WikiFetcher {
@@ -38,6 +39,12 @@ public class CachedFetcher implements WikiFetcher {
 	@Override
 	public String getPageText( String articleName, boolean disableCache ) throws Exception {
 		return cache.fetchPage( articleName, disableCache );
+	}
+
+	@Override
+	public WMFWiki11RevisionText getPage( String articleName, boolean disableCache ) throws Exception
+	{
+		return cache.wiki.getTopRevision( articleName );
 	}
 
 }

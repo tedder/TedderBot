@@ -48,4 +48,17 @@ public class Configuration {
 		return configFile.getProperty("password");
 	}
 
+	private void loadConfigurationFile() throws IOException
+	{
+		// configFile.load(
+		// this.getClass().getClassLoader().getResourceAsStream(
+		// "/wiki.properties" ) );
+		// configFile.load( new FileReader( filename ) );
+		// configFile.load( this.getClass().getClassLoader().getResourceAsStream( new FileReader(filename) ) );
+
+		// ClassPathResource cpr = new ClassPathResource("ems-init.properties");
+		// Properties properties = loadProps(emsInitResource.getInputStream());
+
+		configFile.load( new FileReader( new File( filename ) ) );
+	}
 }

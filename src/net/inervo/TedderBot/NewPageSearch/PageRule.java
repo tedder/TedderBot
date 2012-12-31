@@ -29,6 +29,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
 
+import net.inervo.WMFWiki11RevisionText;
 import net.inervo.Wiki.WikiFetcher;
 
 public class PageRule {
@@ -38,29 +39,39 @@ public class PageRule {
 	private WikiFetcher fetcher = null;
 	private String searchName = null;
 	private String pageName = null;
+	private long revisionID = 0L;
 	private int threshold = DEFAULT_THRESHOLD;
 
 	private List<MatchRule> patterns = new ArrayList<MatchRule>();
 	private List<String> errors = new LinkedList<String>();
 
-	public PageRule(WikiFetcher fetcher, String pageName, String searchName) throws Exception {
+	public PageRule( WikiFetcher fetcher, String pageName, String searchName ) throws Exception
+	{
 		this.fetcher = fetcher;
 		this.searchName = searchName;
 		this.pageName = pageName;
 		parseRule(pageName);
 	}
 
-	private void parseRule(String pageName) throws Exception {
+	private void parseRule( String pageName ) throws Exception
+	{
 
 		Pattern rexLine = Pattern.compile("^\\s*([\\-\\d]*)\\s*\\/(.*?)\\/\\s*(\\,\\s*.*\\s*)?$");
 		Pattern defaultScorePattern = Pattern.compile("^\\s*@@(\\d+)@@\\s*$");
 		Pattern templatePattern = Pattern.compile("^\\s*(\\d*)\\s*\\$\\$(.*)\\$\\$\\s*$");
 
+		WMFWiki11RevisionText rev = fetcher.getPage( pageName, true );
+		if ( rev == null ) {
+			errors.add("couldn't get top revision of " + pageName);
+			return;
+		}
 		String input = null;
 		try {
-			input = fetcher.getPageText(pageName, true);
-		} catch (Exception ex) {
-			throw new Exception("failed fetching rule at " + pageName + ". Original exception: " + ex.getMessage());
+			//input = fetcher.getPageText(pageName, true);
+			revisionID = rev.getRevid();
+			input = rev.getContent();
+		} catch ( Exception ex ) {
+			throw new Exception( "failed fetching rule at " + pageName + ". Original exception: " + ex.getMessage() );
 		}
 		// print( "text: |" + input + "|" );
 		Scanner s = new Scanner(input).useDelimiter("\\n");
@@ -126,9 +137,10 @@ public class PageRule {
 
 	}
 
-	private void safeSetPattern(MatchRule rule, String pattern) {
-		if (pattern.contains("\\p{")) {
-			errors.add("skipped pattern, character sets are poorly supported, pattern: " + pattern);
+	private void safeSetPattern( MatchRule rule, String pattern )
+	{
+		if ( pattern.contains( "\\p{" ) ) {
+			errors.add( "skipped pattern, character sets are poorly supported, pattern: " + pattern );
 			return;
 		}
 
@@ -142,10 +154,10 @@ public class PageRule {
 		}
 	}
 
-	private void safeAddInhibitor(MatchRule rule, String pattern) {
-		if (pattern.contains("\\p{")) {
-			errors.add("skipped inhibitor pattern, character sets are poorly supported, pattern: <nowiki>" + pattern
-					+ "</nowiki>");
+	private void safeAddInhibitor( MatchRule rule, String pattern )
+	{
+		if ( pattern.contains( "\\p{" ) ) {
+			errors.add( "skipped inhibitor pattern, character sets are poorly supported, pattern: <nowiki>" + pattern + "</nowiki>" );
 			return;
 		}
 
@@ -154,25 +166,27 @@ public class PageRule {
 
 		} catch (PatternSyntaxException ex) {
 			// catch and rethrow with more context.
-			errors.add("failed compiling inhibitor rule in [[" + pageName + "]], error was " + ex.getDescription()
-					+ ", pattern: <nowiki>" + ex.getPattern() + "</nowiki>");
+			errors.add( "failed compiling inhibitor rule in [[" + pageName + "]], error was " + ex.getDescription() + ", pattern: <nowiki>"
+				+ ex.getPattern() + "</nowiki>" );
 			return;
 		}
 	}
 
-	private String stripComments(String next) {
-		return next.replaceAll("<!--.*?-->", "");
+	private String stripComments( String next )
+	{
+		return next.replaceAll( "<!--.*?-->", "" );
 	}
 
-	private void parseInhibitors(MatchRule rule, String inhibitors) {
-		if (inhibitors == null || inhibitors.length() == 0) {
+	private void parseInhibitors( MatchRule rule, String inhibitors )
+	{
+		if ( inhibitors == null || inhibitors.length() == 0 ) {
 			return;
 		}
-		Pattern inhibitorPattern = Pattern.compile("\\,?\\s*\\/(.+?)\\/");
-		Matcher matcher = inhibitorPattern.matcher(inhibitors);
+		Pattern inhibitorPattern = Pattern.compile( "\\,?\\s*\\/(.+?)\\/" );
+		Matcher matcher = inhibitorPattern.matcher( inhibitors );
 
-		while (matcher.find()) {
-			safeAddInhibitor(rule, matcher.group(1));
+		while ( matcher.find() ) {
+			safeAddInhibitor( rule, matcher.group( 1 ) );
 		}
 	}
 
@@ -181,13 +195,18 @@ public class PageRule {
 		private List<Pattern> ignore;
 		private Pattern pattern;
 		protected int score;
+		protected boolean isSizeRule = false;
+		private int sizeRuleSize = 0;
+		private String sizeRuleDirection = ">";
 
-		public MatchRule(String pattern) {
-			setPattern(pattern);
+		public MatchRule( String pattern )
+		{
+			setPattern( pattern );
 		}
 
-		public void addInhibitor(String pattern) {
-			if (ignore == null) {
+		public void addInhibitor( String pattern )
+		{
+			if ( ignore == null ) {
 				ignore = new ArrayList<Pattern>();
 			}
 
@@ -196,53 +215,101 @@ public class PageRule {
 			}
 		}
 
-		public MatchRule() {
+		public MatchRule()
+		{
 		}
 
-		public boolean isValidPattern() {
-			if (pattern != null && pattern.toString() != null && pattern.toString().length() > 0) {
+		public boolean isValidPattern()
+		{
+			if ( pattern != null && pattern.toString() != null && pattern.toString().length() > 0 ) {
 				return true;
 			}
 
 			return false;
 		}
 
-		public void setPattern(Pattern pattern) {
+		public void setPattern( Pattern pattern )
+		{
 			this.pattern = pattern;
+			validatePattern();
 		}
 
-		public void setPattern(String pattern) {
-			this.pattern = Pattern.compile(pattern, Pattern.MULTILINE | Pattern.CASE_INSENSITIVE);
+		public void setPattern( String pattern )
+		{
+			this.pattern = Pattern.compile( pattern, Pattern.MULTILINE | Pattern.CASE_INSENSITIVE );
+			validatePattern();
+		}
+		
+		
+		private void validatePattern() {
+			Matcher sizeMatcher = Pattern.compile( "^\\$SIZE\\s*(<|>)\\s*(\\d+)$" ).matcher( pattern.toString() );
+
+			if ( sizeMatcher.matches() ) {
+				isSizeRule = true;
+				sizeRuleDirection = sizeMatcher.group( 1 );
+				sizeRuleSize = Integer.valueOf( sizeMatcher.group( 2 ) );
+			} else if ( pattern.toString().contains( "SIZE" ) ) {
+				throw new RuntimeException( "rule didn't match, but probably should have: " + pattern.toString() );
+			}
 		}
 
-		public List<Pattern> getIgnore() {
+		public List<Pattern> getIgnore()
+		{
 			return ignore;
 		}
 
-		public int getIgnoreCount() {
-			if (ignore == null) {
+		public int getIgnoreCount()
+		{
+			if ( ignore == null ) {
 				return 0;
 			}
 
 			return ignore.size();
 		}
 
-		public Pattern getPattern() {
+		public Pattern getPattern()
+		{
 			return pattern;
 		}
 
-		public int getScore() {
+		public int getScore()
+		{
 			return score;
 		}
+
+		public boolean isSizeRule()
+		{
+			return isSizeRule;
+		}
+
+		public int getSizeRuleSize()
+		{
+			return sizeRuleSize;
+		}
+		
+		public String getSizeRuleDirection()
+		{
+			return sizeRuleDirection;
+		}
+
 
 	}
 
 	/** getters and setters **/
 
 	/**
+	 * revisionID of the rule.
+	 */
+	public long getRevisionID()
+	{
+		return revisionID;
+	}
+
+	/**
 	 * search name. For instance, 'Oregon'.
 	 */
-	public String getSearchName() {
+	public String getSearchName()
+	{
 		return searchName;
 	}
 
@@ -251,7 +318,8 @@ public class PageRule {
 	 * 
 	 * @return
 	 */
-	public List<MatchRule> getPatterns() {
+	public List<MatchRule> getPatterns()
+	{
 		return patterns;
 	}
 
@@ -260,7 +328,8 @@ public class PageRule {
 	 * 
 	 * @return
 	 */
-	public List<String> getErrors() {
+	public List<String> getErrors()
+	{
 		return errors;
 	}
 
@@ -269,7 +338,8 @@ public class PageRule {
 	 * 
 	 * @return
 	 */
-	public String getRulePage() {
+	public String getRulePage()
+	{
 		return pageName;
 	}
 
@@ -279,7 +349,8 @@ public class PageRule {
 	 * 
 	 * @return
 	 */
-	public String getErrorPage() {
+	public String getErrorPage()
+	{
 		return "User:TedderBot/NewPageSearch/" + searchName + "/errors";
 	}
 
@@ -289,7 +360,8 @@ public class PageRule {
 	 * 
 	 * @return
 	 */
-	public String getArchivePage() {
+	public String getArchivePage()
+	{
 		return "User:TedderBot/NewPageSearch/" + searchName + "/archive";
 	}
 
@@ -298,7 +370,8 @@ public class PageRule {
 	 * 
 	 * @return
 	 */
-	public String getOldArchivePage() {
+	public String getOldArchivePage()
+	{
 		return getSearchResultPage() + "/archive";
 	}
 
@@ -307,7 +380,8 @@ public class PageRule {
 	 * 
 	 * @return
 	 */
-	public String getSearchResultPage() {
+	public String getSearchResultPage()
+	{
 		return "User:AlexNewArtBot/" + searchName + "SearchResult";
 	}
 
@@ -316,7 +390,8 @@ public class PageRule {
 	 * 
 	 * @return
 	 */
-	public int getThreshold() {
+	public int getThreshold()
+	{
 		return threshold;
 	}
 

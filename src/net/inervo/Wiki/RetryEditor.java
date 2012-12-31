@@ -47,8 +47,11 @@ public class RetryEditor implements PageEditor {
 				wiki.edit( title, text, summary, minor, section );
 				success = true;
 			} catch ( IOException ex ) {
-				// retry once.
-				warn( "Sleeping, couldn't edit page: " + title );
+				warn( "Sleeping, couldn't edit page (IO exception): " + title );
+				Thread.sleep( 1000 );
+				warn( "Done sleeping: " + title );
+			}catch ( UnknownError ex ) {
+				warn( "Sleeping, couldn't edit page (unknown error): " + title );
 				Thread.sleep( 1000 );
 				warn( "Done sleeping: " + title );
 			}

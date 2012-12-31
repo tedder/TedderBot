@@ -55,7 +55,12 @@ public class ArticleScorer {
 		int score = 0;
 
 		for ( PageRule.MatchRule rule : ruleset.getPatterns() ) {
-			int ruleScore = scoreRule( articleText, rule );
+			int ruleScore = 0;
+			if ( rule.isSizeRule() ) {
+				ruleScore = scoreSize( articleText, rule );
+			} else {
+				ruleScore = scoreRule( articleText, rule );
+			}
 			score += ruleScore;
 			noteScore( ruleScore, rule );
 		}
@@ -75,6 +80,20 @@ public class ArticleScorer {
 		return notes;
 	}
 
+	protected int scoreSize( String articleText, PageRule.MatchRule rule ) {
+		
+		if ( rule.getSizeRuleDirection().contentEquals( ">" ) && articleText.length() > rule.getSizeRuleSize() ) {
+			return rule.getScore();
+		}
+		
+		if ( rule.getSizeRuleDirection().contentEquals( "<" ) && articleText.length() < rule.getSizeRuleSize() ) {
+			return rule.getScore();
+		}
+
+		
+		return 0;
+	}
+	
 	protected int scoreRule( String articleText, PageRule.MatchRule rule ) {
 		boolean matchedArticle = ruleMatches( articleText, rule.getPattern() );
 		boolean foundIgnore = false;
