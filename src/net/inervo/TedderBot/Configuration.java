@@ -48,7 +48,8 @@ public class Configuration {
 		return configFile.getProperty("password");
 	}
 
-	private void loadConfigurationFile() throws IOException
+	@SuppressWarnings("unused")
+	private void loadConfigurationFile(String filename) throws IOException
 	{
 		// configFile.load(
 		// this.getClass().getClassLoader().getResourceAsStream(

@@ -2,9 +2,11 @@
 <classpath>
 	<classpathentry kind="src" path="src"/>
 	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
-	<classpathentry combineaccessrules="false" kind="src" path="/jwiki"/>
-	<classpathentry combineaccessrules="false" kind="src" path="/project-libs"/>
 	<classpathentry kind="con" path="com.amazonaws.eclipse.sdk.AWS_JAVA_SDK"/>
-	<classpathentry kind="lib" path="/project-libs/lib/gson-1.7.1.jar"/>
+	<classpathentry combineaccessrules="false" kind="src" path="/wiki-java"/>
+	<classpathentry kind="lib" path="/Users/tedder/Library/Java/Extensions/aws-java-sdk-1.4.1/lib/aws-java-sdk-1.4.1.jar"/>
+	<classpathentry kind="lib" path="/Users/tedder/Library/Java/Extensions/google-gson-2.2.3/gson-2.2.3.jar"/>
+	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.debug.ui.launcher.StandardVMType/JavaSE-1.6"/>
+	<classpathentry kind="lib" path="lib/ehcache-core-2.6.6.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>

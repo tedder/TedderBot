@@ -35,16 +35,16 @@ public class RetryEditor implements PageEditor {
 		this.wiki = wiki;
 	}
 
-	public void edit( String title, String text, String summary, boolean minor ) throws Exception {
-		edit( title, text, summary, minor, -2 );
+	public void edit( String title, String text, String summary ) throws Exception {
+		edit( title, text, summary, -2 );
 	}
 
-	public void edit( String title, String text, String summary, boolean minor, int section ) throws Exception {
+	public void edit( String title, String text, String summary, int section ) throws Exception {
 
 		boolean success = false;
 		for ( int i = 0; success == false && i < 5; ++i ) {
 			try {
-				wiki.edit( title, text, summary, minor, section );
+				wiki.edit( title, text, summary, section );
 				success = true;
 			} catch ( IOException ex ) {
 				warn( "Sleeping, couldn't edit page (IO exception): " + title );

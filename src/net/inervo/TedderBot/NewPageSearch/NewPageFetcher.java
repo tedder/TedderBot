@@ -24,8 +24,11 @@ package net.inervo.TedderBot.NewPageSearch;
 import java.io.EOFException;
 import java.io.IOException;
 import java.net.SocketTimeoutException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.GregorianCalendar;
 import java.util.HashMap;
@@ -158,7 +161,7 @@ public class NewPageFetcher {
 		}
 
 		try {
-			editor.edit( archivePage, text.toString(), "archived entries", false, -1 );
+			editor.edit( archivePage, text.toString(), "archived entries", -1 );
 		} catch ( IOException ex ) {
 			info( "failed updating " + archivePage );
 		}
@@ -230,7 +233,7 @@ public class NewPageFetcher {
 		}
 
 		try {
-			editor.edit( rule.getSearchResultPage(), searchResultText.toString(), subject.toString(), false );
+			editor.edit( rule.getSearchResultPage(), searchResultText.toString(), subject.toString() );
 		} catch ( IOException ex ) {
 			info( "failed updating " + rule.getSearchResultPage() );
 		}
@@ -295,7 +298,7 @@ public class NewPageFetcher {
 		}
 
 		try {
-			editor.edit( rule.getErrorPage(), errorBuilder.toString(), "most recent errors and scoring", false );
+			editor.edit( rule.getErrorPage(), errorBuilder.toString(), "most recent errors and scoring" );
 		} catch ( Exception e ) {
 			info( "failed writing error page: " + rule.getErrorPage() );
 			// do nothing, we don't really care if the log fails.

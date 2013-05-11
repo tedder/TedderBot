@@ -9,10 +9,9 @@ public class WMFWiki11RevisionText extends Revision {
 	String content = "";
 
 	public WMFWiki11RevisionText( Wiki wiki, long revid, Calendar timestamp, String title, String summary, String user, boolean minor,
-		boolean bot, String content )
+		boolean bot, String content, boolean rvnew, int size )
 	{
-
-		wiki.super( revid, timestamp, title, summary, user, minor, bot );
+		wiki.super( revid, timestamp, title, summary, user, minor, bot, rvnew, size);
 		this.content = content;
 	}
 

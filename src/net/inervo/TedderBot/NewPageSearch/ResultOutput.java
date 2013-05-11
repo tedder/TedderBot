@@ -87,7 +87,7 @@ public class ResultOutput {
 		}
 
 		try {
-			editor.edit( rule.getSearchResultPage(), searchResultText.toString(), subject.toString(), false );
+			editor.edit( rule.getSearchResultPage(), searchResultText.toString(), subject.toString() );
 		} catch ( IOException ex ) {
 			info( "failed updating " + rule.getSearchResultPage() );
 		}
@@ -123,7 +123,7 @@ public class ResultOutput {
 		}
 
 		try {
-			editor.edit( archivePage, text.toString(), "archived entries", false, -1 );
+			editor.edit( archivePage, text.toString(), "archived entries", -1 );
 		} catch ( IOException ex ) {
 			info( "failed updating " + archivePage );
 		}

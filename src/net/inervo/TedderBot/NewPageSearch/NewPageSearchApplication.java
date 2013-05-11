@@ -21,12 +21,10 @@ package net.inervo.TedderBot.NewPageSearch;
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.net.URL;
+import java.util.ArrayList;
 import java.util.Calendar;
-import java.util.Collections;
 import java.util.Comparator;
 import java.util.GregorianCalendar;
 import java.util.List;
@@ -52,7 +50,8 @@ public class NewPageSearchApplication {
 	public static final int PREPEND_SEARCH_DAYS = -7;
 	private static final Logger logger = Logger.getLogger(NewPageSearchApplication.class.getCanonicalName()); // only
 
-	private static final String DEBUG_SEARCH = "Astro";
+	//private static final String DEBUG_SEARCH = "Astro";
+	private static final String DEBUG_SEARCH = "";
 
 	public static void main( String[] args ) throws Exception
 	{
@@ -80,28 +79,22 @@ public class NewPageSearchApplication {
 		}
 
 		try {
-<<<<<<< HEAD
-			NewPageSearchApplication npsa = new NewPageSearchApplication();
-			PersistentKeystore.initialize(npsa.getClass().getResourceAsStream("/AwsCredentials.properties"));
-			Configuration config = new Configuration(npsa.getClass().getResourceAsStream("/wiki.properties"));
-=======
 			PersistentKeystore.initialize( amazonProps );
 			Configuration config = new Configuration( wikiProps );
->>>>>>> 270457b2f36dc965756fce6b01e09a59e4f1a5cf
 
 			WMFWiki11 wiki = new WMFWiki11("en.wikipedia.org");
 			wiki.setMaxLag(15);
-			wiki.setLogLevel(Level.WARNING);
 
 			// wiki.setThrottle( 5000 );
 			wiki.login(config.getWikipediaUser(), config.getWikipediaPassword().toCharArray());
+			wiki.setMarkBot(true);
 			print("db lag (seconds): " + wiki.getCurrentDatabaseLag());
 			BotFlag.check(wiki);
 
 			ac = new ArticleCache(wiki);
 			WikiFetcher fetcher = new CachedFetcher(ac);
 
-			PageRules rules = new PageRules(fetcher, "User:AlexNewArtBot/Master", debugSearch);
+			PageRules rules = new PageRules(fetcher, "User:AlexNewArtBot/Master", DEBUG_SEARCH);
 
 			PageEditor editor = new RetryEditor(wiki);
 
@@ -110,29 +103,43 @@ public class NewPageSearchApplication {
 			print("last processed: " + lastProcessed);
 
 			List<PageRule> ruleList = rules.getRules();
-			Comparator<PageRule> sorter = new SortRulesByRuleNameAlpha();
+			
+			// hacky way to sort by "last processed". Take elements before or equal to lastProcessed and put them later.
 			if (lastProcessed != null) {
-				sorter = new SortRulesByRuleNameAlphaOnPivot(lastProcessed);
+				List<PageRule> ruleListBefore = new ArrayList<PageRule>();
+				List<PageRule> ruleListAfter = new ArrayList<PageRule>();
+				
+				boolean found = false;
+				for(PageRule rule: ruleList) {
+					print("comparing " + lastProcessed.toLowerCase() + " to " + rule.getSearchName().toLowerCase());
+					if (found == true) {
+						ruleListAfter.add(rule);
+					} else if (rule.getSearchName().toLowerCase().contentEquals(lastProcessed.toLowerCase()) ) {
+						found = true;
+						print("found: " + lastProcessed);
+						ruleListBefore.add(rule);
+					} else {
+						ruleListBefore.add(rule);
+					}
+				}
+				ruleList = new ArrayList<PageRule>();
+				ruleList.addAll(ruleListAfter);
+				ruleList.addAll(ruleListBefore);
 			}
-			Collections.sort(ruleList, sorter);
 
 			NewPageFetcher npp = new NewPageFetcher(wiki, fetcher, editor);
+
+			for (PageRule rule : ruleList) {
+				print("rule: " + rule.getSearchName());
+			}
 
 			for (PageRule rule : ruleList) {
 				BotFlag.check(wiki);
 
 				String searchName = rule.getSearchName();
 
-<<<<<<< HEAD
-				print("processing rule "
-						+ searchName
-						+ ", current time: "
-						+ WikiHelpers.calendarToTimestamp(new GregorianCalendar(TimeZone
-								.getTimeZone("America/Los_Angeles"))));
-=======
 				print( "processing rule " + searchName + ", current time: "
 					+ WikiHelpers.calendarToTimestamp( new GregorianCalendar( TimeZone.getTimeZone( "America/Los_Angeles" ) ) ) );
->>>>>>> 270457b2f36dc965756fce6b01e09a59e4f1a5cf
 				long startClock = System.currentTimeMillis();
 
 				// store it before we run. That way we'll begin at n+1 even if this one frequently fails.
@@ -161,74 +168,20 @@ public class NewPageSearchApplication {
 		}
 	}
 
-	public static class SortRulesByRuleNameAlphaOnPivot implements Comparator<PageRule> {
-		private String pivot;
-
-<<<<<<< HEAD
-		public SortRulesByRuleNameAlphaOnPivot(String pivot) {
-=======
-		public SortRulesByRuleNameAlphaOnPivot( String pivot )
-		{
->>>>>>> 270457b2f36dc965756fce6b01e09a59e4f1a5cf
-			this.pivot = pivot.toLowerCase();
-		};
-
-		@Override
-<<<<<<< HEAD
-		public int compare(PageRule arg0, PageRule arg1) {
-			int zeroComp = pivot.compareTo(arg0.getSearchName().toLowerCase());
-			int oneComp = pivot.compareTo(arg1.getSearchName().toLowerCase());
-			int directComp = arg0.getSearchName().toLowerCase().compareTo(arg1.getSearchName().toLowerCase());
-			// System.out.println(pivot + " - " + arg0.getSearchName() + " - " + arg1.getSearchName() + " == "
-			// + zeroComp + " / " + oneComp + " / " + directComp + " / abs: " + (zeroComp * oneComp <= 0));
-
-			if (zeroComp * oneComp <= 0) {
-				// removed this, it broke the Comparator "contract" in Java7 or an update to Java6. Is it
-				// needed for this to work? Hmm.
-				// return Math.abs( directComp );
-=======
-		public int compare( PageRule arg0, PageRule arg1 )
-		{
-			int zeroComp = pivot.compareTo( arg0.getSearchName().toLowerCase() );
-			int oneComp = pivot.compareTo( arg1.getSearchName().toLowerCase() );
-			int directComp = arg0.getSearchName().toLowerCase().compareTo( arg1.getSearchName().toLowerCase() );
-
-			if ( zeroComp * oneComp <= 0 ) {
-				return Math.abs( directComp );
->>>>>>> 270457b2f36dc965756fce6b01e09a59e4f1a5cf
-			}
-
-			return directComp;
-		}
-	}
-
-<<<<<<< HEAD
-	public static boolean isDeltaGreaterThanOneDay(Calendar obj1, Calendar obj2) {
-		long delta = Math.abs(obj1.getTimeInMillis() - obj2.getTimeInMillis());
-		if (delta > DAY_IN_MILLISECONDS) {
-=======
 	public static boolean isDeltaGreaterThanOneDay( Calendar obj1, Calendar obj2 )
 	{
 		long delta = Math.abs( obj1.getTimeInMillis() - obj2.getTimeInMillis() );
 		if ( delta > DAY_IN_MILLISECONDS ) {
->>>>>>> 270457b2f36dc965756fce6b01e09a59e4f1a5cf
 			return true;
 		}
 		return false;
 	}
 
-<<<<<<< HEAD
-	public static String deltaMillisecondsToString(long delta) {
-		long deltaSeconds = (delta / 1000) % 60;
-		long deltaMinutes = (deltaSeconds / 60) % 60;
-		long deltaHours = (deltaMinutes / 60) % 60;
-=======
 	public static String deltaMillisecondsToString( long delta )
 	{
 		long deltaSeconds = ( delta / 1000 ) % 60;
 		long deltaMinutes = ( deltaSeconds / 60 ) % 60;
 		long deltaHours = ( deltaMinutes / 60 ) % 60;
->>>>>>> 270457b2f36dc965756fce6b01e09a59e4f1a5cf
 
 		return String.format("%d hours, %d minutes, %d seconds", deltaHours, deltaMinutes, deltaSeconds);
 	}
@@ -239,20 +192,6 @@ public class NewPageSearchApplication {
 		};
 
 		@Override
-<<<<<<< HEAD
-		public int compare(PageRule arg0, PageRule arg1) {
-			return arg0.getSearchName().compareTo(arg1.getSearchName());
-		}
-	}
-
-	private static void print(String s) {
-		logger.log(Level.INFO, s);
-	}
-
-	public static String getStartTime(String searchName) throws FileNotFoundException, IllegalArgumentException,
-			IOException {
-		String startTime = PersistentKeystore.get(searchName, "lastRunTime");
-=======
 		public int compare( PageRule arg0, PageRule arg1 )
 		{
 			return arg0.getSearchName().compareTo( arg1.getSearchName() );
@@ -267,7 +206,6 @@ public class NewPageSearchApplication {
 	public static String getStartTime( String searchName ) throws FileNotFoundException, IllegalArgumentException, IOException
 	{
 		String startTime = PersistentKeystore.get( searchName, "lastRunTime" );
->>>>>>> 270457b2f36dc965756fce6b01e09a59e4f1a5cf
 
 		if (startTime == null || startTime.isEmpty()) {
 			startTime = getDefaultStartTime();
@@ -280,14 +218,6 @@ public class NewPageSearchApplication {
 		return startTime;
 	}
 
-<<<<<<< HEAD
-	public static void storeStartTime(String searchName, String lastStamp) {
-		PersistentKeystore.put(searchName, "lastRunTime", lastStamp, true);
-	}
-
-	public static String getDefaultStartTime() throws FileNotFoundException, IllegalArgumentException, IOException {
-		String startTime = PersistentKeystore.get("default", "lastRunTime");
-=======
 	public static void storeStartTime( String searchName, String lastStamp )
 	{
 		PersistentKeystore.put( searchName, "lastRunTime", lastStamp, true );
@@ -296,7 +226,6 @@ public class NewPageSearchApplication {
 	public static String getDefaultStartTime() throws FileNotFoundException, IllegalArgumentException, IOException
 	{
 		String startTime = PersistentKeystore.get( "default", "lastRunTime" );
->>>>>>> 270457b2f36dc965756fce6b01e09a59e4f1a5cf
 
 		Calendar start = null;
 		if (startTime == null || startTime.isEmpty()) {

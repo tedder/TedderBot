@@ -77,6 +77,7 @@ public class ExistingResultsFetcher {
 		wiki.setLogLevel( Level.WARNING );
 
 		// wiki.setThrottle( 5000 );
+		System.out.println("logging in as user: " + config.getWikipediaUser() + " with pass " + config.getWikipediaPassword());
 		wiki.login( config.getWikipediaUser(), config.getWikipediaPassword().toCharArray() );
 		WikiFetcher fetcher = new BasicFetcher( wiki );
 

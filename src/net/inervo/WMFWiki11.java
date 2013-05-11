@@ -90,6 +90,22 @@ public class WMFWiki11 extends org.wikipedia.WMFWiki {
 
 		return ret;
 	}
+	
+	/**
+	 * Helper function to wrap our Long.parseLong call.
+	 * 
+	 * @param input
+	 * @return long
+	 */
+	protected int tryIntParse( String input )
+	{
+		try {
+			return Integer.parseInt(input);
+		} catch ( NumberFormatException ex ) {
+		}
+
+		return -1;
+	}
 
 	/**
 	 * Gets the revision history of a page between two dates.
@@ -106,11 +122,11 @@ public class WMFWiki11 extends org.wikipedia.WMFWiki {
 	 * @since 0.19
 	 */
 
-	public WMFWiki11RevisionText getTopRevision( String title ) throws Exception
+	public WMFWiki11RevisionText getTopRevision( String title ) throws IOException
 	{
-		String url = apiUrl + "action=query&prop=revisions&rvprop=timestamp|user|comment|content|ids&rvlimit=1&format=json&titles="
+		String url = apiUrl + "action=query&prop=revisions&rvprop=timestamp|user|comment|size|content|ids|flags|size&rvlimit=1&format=json&titles="
 			+ URLEncoder.encode( title, "UTF-8" );
-		String pageContent = fetch( url, "getTopRevision", false );
+		String pageContent = fetch( url, "getTopRevision" );
 
 		JsonParser parser = new JsonParser();
 		JsonElement headElement = parser.parse( pageContent );
@@ -146,10 +162,14 @@ public class WMFWiki11 extends org.wikipedia.WMFWiki {
 
 		boolean minor = isEmptyOrNull( revision.get( "minor" ) );
 		boolean bot = isEmptyOrNull( revision.get( "bot" ) );
+		int size = revision.get( "size" ).getAsInt();
+		boolean isPageNew = false;
+		if (revision.has("parent") && revision.get("parent").getAsInt() == 0)
+			isPageNew = true;
 
 		String content = revision.get( "*" ).getAsString();
 
-		return new WMFWiki11RevisionText( this, revid, timestamp, outTitle, summary, user, minor, bot, content );
+		return new WMFWiki11RevisionText( this, revid, timestamp, outTitle, summary, user, minor, bot, content, isPageNew, size );
 	}
 
 	protected boolean isEmptyOrNull( JsonElement element )
@@ -208,8 +228,11 @@ public class WMFWiki11 extends org.wikipedia.WMFWiki {
 		String user2 = ele.getAttribute( "user" );
 		boolean minor = isEmptyOrNull( ele.getAttribute( "minor" ) );
 		boolean bot = isEmptyOrNull( ele.getAttribute( "bot" ) );
+		int size = tryIntParse(ele.getAttribute( "size" ));
+		boolean isPageNew = tryIntParse(ele.getAttribute("parent")) == 0;
 
-		Revision revision = new Revision( oldid, timestamp, title, summary, user2, minor, bot );
+
+		Revision revision = new Revision( oldid, timestamp, title, summary, user2, minor, bot, isPageNew, size );
 		revision.setRcid( tryLongParse( ele.getAttribute( "rcid" ) ) );
 		return revision;
 	}
@@ -328,12 +351,12 @@ public class WMFWiki11 extends org.wikipedia.WMFWiki {
 			String line = null;
 			
 			try {
-			line = fetch( temp + rcstart, "newPages", false );
+			line = fetch( temp + rcstart, "newPages" );
 			} catch (IOException ex) {
 				log( Level.WARNING, "fetching newPages returned an IOException. Retrying.", "recentChangesFFF" );
 
 				// retry once.
-				line = fetch( temp + rcstart, "newPages", false );
+				line = fetch( temp + rcstart, "newPages" );
 			}
 
 			// DOM XML parser
@@ -424,6 +447,14 @@ public class WMFWiki11 extends org.wikipedia.WMFWiki {
 					log( Level.INFO, "query-continue rcstart: " + nextStart, "parseQueryContinue" );
 					break OUTER;
 				}
+				
+				attribute = ( (Element) nodeItem ).getAttribute( "rccontinue" );
+				if ( attribute != null && attribute.length() > 0 ) {
+					String splitAttr = attribute.split("\\|")[0];
+					nextStart = convertTimestamp( splitAttr );
+					log( Level.INFO, "query-continue rccontinue: " + nextStart, "parseQueryContinue" );
+					break OUTER;
+				}
 			}
 		}
 		return nextStart;
@@ -445,7 +476,7 @@ public class WMFWiki11 extends org.wikipedia.WMFWiki {
 	 */
 	public Revision[] recentChanges( int amount ) throws IOException
 	{
-		return recentChanges( amount, MAIN_NAMESPACE, 0, false );
+		return recentChanges( amount, 0, false, MAIN_NAMESPACE );
 	}
 
 	/**
