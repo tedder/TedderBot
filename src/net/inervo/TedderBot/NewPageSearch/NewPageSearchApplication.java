@@ -180,8 +180,8 @@ public class NewPageSearchApplication {
 	public static String deltaMillisecondsToString( long delta )
 	{
 		long deltaSeconds = ( delta / 1000 ) % 60;
-		long deltaMinutes = ( deltaSeconds / 60 ) % 60;
-		long deltaHours = ( deltaMinutes / 60 ) % 60;
+		long deltaMinutes = ((delta / (1000*60)) % 60);
+		long deltaHours = ((delta / (1000*60*60)) % 24);
 
 		return String.format("%d hours, %d minutes, %d seconds", deltaHours, deltaMinutes, deltaSeconds);
 	}
