@@ -139,10 +139,10 @@ public class PageRule {
 
 	private void safeSetPattern( MatchRule rule, String pattern )
 	{
-		if ( pattern.contains( "\\p{" ) ) {
-			errors.add( "skipped pattern, character sets are poorly supported, pattern: " + pattern );
-			return;
-		}
+		// if ( pattern.contains( "\\p{" ) ) {
+		//	errors.add( "skipped pattern, character sets are poorly supported, pattern: " + pattern );
+		//	return;
+		// }
 
 		try {
 			rule.setPattern(pattern);
@@ -156,10 +156,10 @@ public class PageRule {
 
 	private void safeAddInhibitor( MatchRule rule, String pattern )
 	{
-		if ( pattern.contains( "\\p{" ) ) {
-			errors.add( "skipped inhibitor pattern, character sets are poorly supported, pattern: <nowiki>" + pattern + "</nowiki>" );
-			return;
-		}
+		// if ( pattern.contains( "\\p{" ) ) {
+		//	errors.add( "skipped inhibitor pattern, character sets are poorly supported, pattern: <nowiki>" + pattern + "</nowiki>" );
+		//	return;
+		// }
 
 		try {
 			rule.addInhibitor(pattern);
